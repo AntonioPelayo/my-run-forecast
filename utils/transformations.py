@@ -1,0 +1,33 @@
+import numpy as np
+
+def create_elapsed_time(df, time_col='timestamp'):
+    """Add an 'elapsed_time' column to the DataFrame based on the time_col."""
+    df = df.sort_values(by=time_col).reset_index(drop=True)
+    df['elapsed_time'] = (df[time_col] - df[time_col].iloc[0]).dt.total_seconds()
+    return df
+
+
+def create_gradient(df, altitude_col='altitude_m', distance_col='distance_m', metric=True):
+    """Compute gradients using either metric (meters) or imperial (feet/miles) inputs."""
+    df = df.sort_values(by=distance_col).reset_index(drop=True)
+
+    da = df[altitude_col].diff().fillna(0)
+    dd = df[distance_col].diff().fillna(0).replace(0, 1e-6)
+
+    if metric:
+        # inputs in meters
+        df['delta_altitude_m'] = da
+        df['delta_distance_m'] = dd
+        df['altitude_m'] = df[altitude_col]
+        df['gradient'] = df['delta_altitude_m'] / df['delta_distance_m']
+    else:
+        # inputs in imperial: altitude in feet, distance in miles
+        df['delta_altitude_ft'] = da
+        df['delta_distance_mi'] = dd
+        df['altitude_ft'] = df[altitude_col]
+        df['gradient'] = df['delta_altitude_ft'] / (df['delta_distance_mi'] * 5280.0)
+
+    df['gradient_percent'] = df['gradient'] * 100
+    df['gradient_deg'] = np.degrees(np.arctan(df['gradient']))
+
+    return df
