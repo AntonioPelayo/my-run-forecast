@@ -31,3 +31,8 @@ def create_gradient(df, altitude_col='altitude_m', distance_col='distance_m', me
     df['gradient_deg'] = np.degrees(np.arctan(df['gradient']))
 
     return df
+
+
+def semicircle_to_degrees(s):
+    """Convert a series of semicircles to degrees for lat/long."""
+    return s * (180.0 / 2**31)
