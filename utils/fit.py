@@ -72,28 +72,38 @@ def parse_fit_file(fit_path, metric=True):
         inplace=True
     )
 
-    df['vert_gain_m'] = df['altitude_m'].diff().fillna(0).clip(lower=0)
+    # vertical change (signed), positive gains, and cumulative gain
+    df['vert_change_m'] = df['altitude_m'].diff().fillna(0)
+    df['vert_gain_m'] = df['vert_change_m'].clip(lower=0)
+    df['cum_vert_gain_m'] = df['vert_gain_m'].cumsum()
 
     # Convert units
     if not metric:
         if 'altitude_m' in df.columns:
-            df['altitude_ft'] = df['altitude_m'] * 0.3048
+            df['altitude_ft'] = df['altitude_m'] * 3.28084
         if 'distance_m' in df.columns:
             df['distance_mi'] = df['distance_m'] * 0.000621371
+        if 'vert_change_m' in df.columns:
+            df['vert_change_ft'] = df['vert_change_m'] * 3.28084
         if 'vert_gain_m' in df.columns:
-            df['vert_gain_ft'] = df['vert_gain_m'] * 0.3048
+            df['vert_gain_ft'] = df['vert_gain_m'] * 3.28084
+        if 'cum_vert_gain_m' in df.columns:
+            df['cum_vert_gain_ft'] = df['cum_vert_gain_m'] * 3.28084
         if 'speed_mps' in df.columns:
-            df['speed_mph'] = df['speed_mps'] * 0.44704
+            df['speed_mph'] = df['speed_mps'] * 2.23694
         if 'step_length' in df.columns:
-            df['step_length_ft'] = df['step_length'] * 0.3048
+            df['step_length_ft'] = df['step_length'] * 0.00328084
         if 'temperature' in df.columns:
             df['temperature_f'] = (df['temperature'] * 9/5) + 32
 
         df.drop(columns=[
+            col for col in [
                 'altitude_m', 'delta_altitude_m',
                 'distance_m', 'delta_distance_m',
-                'speed_mps', 'step_length', 'temperature', 'vert_gain_m'
-            ],
+                'speed_mps', 'step_length', 'temperature',
+                'vert_change_m', 'vert_gain_m', 'cum_vert_gain_m'
+            ]
+            if col in df.columns],
             inplace=True
         )
 

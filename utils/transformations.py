@@ -1,9 +1,9 @@
 import numpy as np
 
 def create_elapsed_time(df, time_col='timestamp'):
-    """Add an 'elapsed_time' column to the DataFrame based on the time_col."""
+    """Add an 'elapsed_time_s' column to the DataFrame based on the time_col."""
     df = df.sort_values(by=time_col).reset_index(drop=True)
-    df['elapsed_time'] = (df[time_col] - df[time_col].iloc[0]).dt.total_seconds()
+    df['elapsed_time_s'] = (df[time_col] - df[time_col].iloc[0]).dt.total_seconds()
     return df
 
 
