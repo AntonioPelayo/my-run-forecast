@@ -1,13 +1,13 @@
 import numpy as np
+import pandas as pd
 
-def create_elapsed_time(df, time_col='timestamp'):
+def create_elapsed_time(df: pd.DataFrame, time_col: str = 'timestamp') -> pd.DataFrame:
     """Add an 'elapsed_time_s' column to the DataFrame based on the time_col."""
     df = df.sort_values(by=time_col).reset_index(drop=True)
     df['elapsed_time_s'] = (df[time_col] - df[time_col].iloc[0]).dt.total_seconds()
     return df
 
-
-def create_gradient(df, altitude_col='altitude_m', distance_col='distance_m', metric=True):
+def create_gradient(df: pd.DataFrame, altitude_col: str = 'altitude_m', distance_col: str = 'distance_m', metric: bool = True) -> pd.DataFrame:
     """Compute gradients using either metric (meters) or imperial (feet/miles) inputs."""
     df = df.sort_values(by=distance_col).reset_index(drop=True)
 
@@ -33,6 +33,6 @@ def create_gradient(df, altitude_col='altitude_m', distance_col='distance_m', me
     return df
 
 
-def semicircle_to_degrees(s):
+def semicircle_to_degrees(s: pd.Series) -> pd.Series:
     """Convert a series of semicircles to degrees for lat/long."""
     return s * (180.0 / 2**31)
