@@ -8,7 +8,7 @@ from config import (
     MPS_TO_MPH_MULTIPLIER,
     MM_TO_FT_MULTIPLIER,
 )
-from utils.features import create_elapsed_time, create_gradient
+from utils.features import elapsed_time, create_gradient
 
 def fit_to_df(file_path: str) -> pd.DataFrame:
     """Read a .fit file and return a pandas DataFrame."""
@@ -29,7 +29,7 @@ def fit_to_parquet(fit_path: str, parquet_path: str) -> None:
     df.to_parquet(parquet_path, index=False)
 
 
-def parse_fit_file(fit_path: str, metric: bool = True) -> pd.DataFrame:
+def parse_fit_file(fit_path: str) -> pd.DataFrame:
     """Parse a .fit file into a DataFrame with a known structure."""
     fit = fitparse.FitFile(fit_path)
     rows = []
@@ -65,7 +65,7 @@ def parse_fit_file(fit_path: str, metric: bool = True) -> pd.DataFrame:
         df['cadence'] += pd.to_numeric(df['fractional_cadence'], errors='coerce')
 
     # New data fields
-    df = create_elapsed_time(df)
+    df['elapsed_time_s'] = elapsed_time(df['timestamp'])
     df = create_gradient(df)
 
     # Drop original columns after conversion
@@ -84,34 +84,23 @@ def parse_fit_file(fit_path: str, metric: bool = True) -> pd.DataFrame:
     df['cum_vert_gain_m'] = df['vert_gain_m'].cumsum()
 
     # Convert units
-    if not metric:
-        if 'altitude_m' in df.columns:
-            df['altitude_ft'] = df['altitude_m'] * M_TO_FT_MULTIPLIER
-        if 'distance_m' in df.columns:
-            df['distance_mi'] = df['distance_m'] * M_TO_MI_MULTIPLIER
-        if 'vert_change_m' in df.columns:
-            df['vert_change_ft'] = df['vert_change_m'] * M_TO_FT_MULTIPLIER
-        if 'vert_gain_m' in df.columns:
-            df['vert_gain_ft'] = df['vert_gain_m'] * M_TO_FT_MULTIPLIER
-        if 'cum_vert_gain_m' in df.columns:
-            df['cum_vert_gain_ft'] = df['cum_vert_gain_m'] * M_TO_FT_MULTIPLIER
-        if 'speed_mps' in df.columns:
-            df['speed_mph'] = df['speed_mps'] * MPS_TO_MPH_MULTIPLIER
-        if 'step_length' in df.columns:
-            df['step_length_ft'] = df['step_length'] * MM_TO_FT_MULTIPLIER
-        if 'temperature' in df.columns:
-            df['temperature_f'] = (df['temperature'] * 9/5) + 32
-
-        df.drop(columns=[
-            col for col in [
-                'altitude_m', 'delta_altitude_m',
-                'distance_m', 'delta_distance_m',
-                'speed_mps', 'step_length', 'temperature',
-                'vert_change_m', 'vert_gain_m', 'cum_vert_gain_m'
-            ]
-            if col in df.columns],
-            inplace=True
-        )
+    # if not metric:
+    if 'altitude_m' in df.columns:
+        df['altitude_ft'] = df['altitude_m'] * M_TO_FT_MULTIPLIER
+    if 'distance_m' in df.columns:
+        df['distance_mi'] = df['distance_m'] * M_TO_MI_MULTIPLIER
+    if 'vert_change_m' in df.columns:
+        df['vert_change_ft'] = df['vert_change_m'] * M_TO_FT_MULTIPLIER
+    if 'vert_gain_m' in df.columns:
+        df['vert_gain_ft'] = df['vert_gain_m'] * M_TO_FT_MULTIPLIER
+    if 'cum_vert_gain_m' in df.columns:
+        df['cum_vert_gain_ft'] = df['cum_vert_gain_m'] * M_TO_FT_MULTIPLIER
+    if 'speed_mps' in df.columns:
+        df['speed_mph'] = df['speed_mps'] * MPS_TO_MPH_MULTIPLIER
+    if 'step_length' in df.columns:
+        df['step_length_ft'] = df['step_length'] * MM_TO_FT_MULTIPLIER
+    if 'temperature' in df.columns:
+        df['temperature_f'] = (df['temperature'] * 9/5) + 32
 
     df.reset_index(drop=True, inplace=True)
     return df

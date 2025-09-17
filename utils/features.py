@@ -1,11 +1,44 @@
 import numpy as np
 import pandas as pd
 
+def elapsed_time(timestamps: pd.Series) -> pd.Series:
+    """Compute elapsed time in seconds from a series of timestamps."""
+    timestamps = pd.to_datetime(timestamps, errors='coerce')
+    t0 = timestamps.dropna().min()
+    if pd.isna(t0):
+        return pd.Series([np.nan] * len(timestamps))
+    return (timestamps - t0).dt.total_seconds()
+
+
+def avg_speed_weighted(distance: pd.Series, elapsed_s: pd.Series) -> float:
+    """Compute time weighted average speed."""
+    dd = np.diff(distance, prepend=distance[0])
+    dt = np.diff(elapsed_s, prepend=elapsed_s[0])
+
+    mask = (dt > 0) & (dd >= 0)
+    speeds = (dd[mask] / dt[mask])
+
+    return float(speeds.mean())
+
+def avg_speed_basic(distance: pd.Series, elapsed_s: pd.Series) -> float:
+    """Compute basic average speed, ignoring zero or negative deltas."""
+    if len(distance) < 2 or len(elapsed_s) < 2:
+        return float('nan')
+
+    total_distance = distance.iloc[-1] - distance.iloc[0]
+    total_time = elapsed_s.iloc[-1] - elapsed_s.iloc[0]
+
+    if total_time <= 0 or total_distance < 0:
+        return float('nan')
+
+    return float(total_distance / total_time)
+
 def create_elapsed_time(df: pd.DataFrame, time_col: str = 'timestamp') -> pd.DataFrame:
     """Add an 'elapsed_time_s' column to the DataFrame based on the time_col."""
     df = df.sort_values(by=time_col).reset_index(drop=True)
     df['elapsed_time_s'] = (df[time_col] - df[time_col].iloc[0]).dt.total_seconds()
     return df
+
 
 def create_gradient(df: pd.DataFrame, altitude_col: str = 'altitude_m', distance_col: str = 'distance_m', metric: bool = True) -> pd.DataFrame:
     """Compute gradients using either metric (meters) or imperial (feet/miles) inputs."""
