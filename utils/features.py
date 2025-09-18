@@ -10,43 +10,23 @@ def elapsed_time(timestamps: pd.Series) -> pd.Series:
     return (timestamps - t0).dt.total_seconds()
 
 
-def avg_speed_weighted(distance: pd.Series, elapsed_s: pd.Series) -> float:
-    """Compute time weighted average speed."""
-    dd = np.diff(distance, prepend=distance[0])
-    dt = np.diff(elapsed_s, prepend=elapsed_s[0])
-
-    mask = (dt > 0) & (dd >= 0)
-    speeds = (dd[mask] / dt[mask])
-
-    return float(speeds.mean())
-
-def avg_speed_basic(distance: pd.Series, elapsed_s: pd.Series) -> float:
-    """Compute basic average speed, ignoring zero or negative deltas."""
-    if len(distance) < 2 or len(elapsed_s) < 2:
-        return float('nan')
-
-    total_distance = distance.iloc[-1] - distance.iloc[0]
-    total_time = elapsed_s.iloc[-1] - elapsed_s.iloc[0]
-
-    if total_time <= 0 or total_distance < 0:
-        return float('nan')
-
-    return float(total_distance / total_time)
-
 def create_elapsed_time(df: pd.DataFrame, time_col: str = 'timestamp') -> pd.DataFrame:
     """Add an 'elapsed_time_s' column to the DataFrame based on the time_col."""
+    # TODO: Convert to deal with series directly
     df = df.sort_values(by=time_col).reset_index(drop=True)
     df['elapsed_time_s'] = (df[time_col] - df[time_col].iloc[0]).dt.total_seconds()
     return df
 
 
 def create_gradient(df: pd.DataFrame, altitude_col: str = 'altitude_m', distance_col: str = 'distance_m', metric: bool = True) -> pd.DataFrame:
+    # TODO: Convert to deal with series directly
     """Compute gradients using either metric (meters) or imperial (feet/miles) inputs."""
     df = df.sort_values(by=distance_col).reset_index(drop=True)
 
     da = df[altitude_col].diff().fillna(0)
     dd = df[distance_col].diff().fillna(0).replace(0, 1e-6)
 
+    # TODO: Update column names to use constants
     if metric:
         # inputs in meters
         df['delta_altitude_m'] = da

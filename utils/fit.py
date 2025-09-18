@@ -46,6 +46,7 @@ def parse_fit_file(fit_path: str) -> pd.DataFrame:
     # Remove unknown columns
     df = df[[col for col in df.columns if 'unknown' not in col]]
 
+    # TODO: Update column names to use constants from config.py
     # Standardize units and columns
     if 'enhanced_altitude' in df.columns:
         df['altitude_m'] = pd.to_numeric(df['enhanced_altitude'], errors='coerce')

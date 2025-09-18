@@ -1,3 +1,5 @@
+from pathlib import Path
+
 EXPECTED_FIT_COLUMNS = [
     'accumulated_power', 'activity_type', 'cadence', 'distance',
     'enhanced_altitude', 'enhanced_speed', 'fractional_cadence',
@@ -6,9 +8,19 @@ EXPECTED_FIT_COLUMNS = [
     'temperature', 'timestamp', 'vertical_oscillation', 'vertical_ratio'
 ]
 
-DATA_PATH = '../data/'
+DATA_PATH = Path('data')
 
 PLT_STYLE = 'seaborn-v0_8'
+
+DISTANCE_M_COL = 'distance_m'
+ELEVATION_M_COL = 'elevation_m'
+
+DISTANCE_MI_COL = 'distance_mi'
+ELEVATION_FT_COL = 'elevation_ft'
+
+LATITUDE_COL = 'position_lat'
+LONGITUDE_COL = 'position_long'
+ELAPSED_TIME_S_COL = 'elapsed_time_s'
 
 
 MIPS_TO_MPH_MULTIPLIER = 3600 # Miles per second to Miles per Hour
