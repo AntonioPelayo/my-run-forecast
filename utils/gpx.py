@@ -92,23 +92,22 @@ def parse_gpx_to_df(gpx_content: str) -> pd.DataFrame:
 def read_gpx_file(gpx_path: Path) -> pd.DataFrame:
     with open(gpx_path, 'rb') as f:
         gpx_bytes = f.read()
-        print(f'Read from path: {gpx_path} ({len(gpx_bytes)} bytes)')
+        # print(f'Read from path: {gpx_path} ({len(gpx_bytes)} bytes)')
 
     gpx_content = gpx_bytes.decode('utf-8', errors='ignore')
 
     return parse_gpx_to_df(gpx_content)
 
 
-def gpx_distance(gpx_path: Path):
-    """Calculate the total distance of a GPX file in meters."""
+def route_summary(gpx_path: Path, metric=True) -> tuple[float, float]:
     route_df = read_gpx_file(gpx_path)
-
     if route_df.empty:
-        raise ValueError(f"GPX file {gpx_path} contains no track or route points.")
+        raise RuntimeError(f"GPX file {gpx_path} contained no route points")
+    if metric:
+        distance = float(route_df[DISTANCE_M_COL].iloc[-1])
+        elevation_gain = float(route_df[ELEVATION_M_COL].diff().clip(lower=0).sum())
+    else:
+        distance = float(route_df[DISTANCE_MI_COL].iloc[-1])
+        elevation_gain = float(route_df[ELEVATION_FT_COL].diff().clip(lower=0).sum())
 
-    distance_mi = float(route_df[DISTANCE_MI_COL].iloc[-1])
-    elevation_gain_ft = float(
-        route_df[ELEVATION_FT_COL].diff().clip(lower=0).sum()
-    )
-    print(f"GPX file {gpx_path}: {distance_mi:.2f} miles, {elevation_gain_ft:.0f} ft elevation gain")
-    # return route_df
+    return distance, elevation_gain
