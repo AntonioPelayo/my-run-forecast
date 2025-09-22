@@ -15,7 +15,7 @@ from config import (
     MPS_TO_MPH_MULTIPLIER,
 )
 from models import pace as pace_models
-from models import time_linear
+from models import time_linear, time_torch
 from utils import gpx as gpxu
 from utils.time import hours_to_hhmmss
 
@@ -43,6 +43,7 @@ PACE_MODELS: tuple[PaceModel, ...] = (
 )
 
 DEFAULT_LINEAR_MODEL_PATH = Path("models/time_linear_weights.json")
+DEFAULT_TORCH_MODEL_PATH = Path("models/time_torch_weights.pt")
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
@@ -103,13 +104,31 @@ def load_linear_model(weights_path: Path) -> time_linear.LinearTimeModel | None:
         return None
 
 
+def load_torch_model(
+    weights_path: Path,
+    device: str | None = None,
+) -> tuple[time_torch.TimeMLP, dict[str, np.ndarray]] | None:
+    if not weights_path.exists():
+        sys.stderr.write(
+            f"[warn] Torch model weights not found at {weights_path}. Run the training notebook to generate them.\n"
+        )
+        return None
+
+    try:
+        return time_torch.load_model(weights_path, device=device)
+    except Exception as exc:  # pragma: no cover - defensive load guard
+        sys.stderr.write(f"[warn] Failed to load torch model weights: {exc}\n")
+        return None
+
+
 def print_predictions(
     distance_mi: float,
     model_speeds: dict[str, float],
     linear_model: time_linear.LinearTimeModel | None,
+    torch_model_bundle: tuple[time_torch.TimeMLP, dict[str, np.ndarray]] | None,
     gpx_elev_gain_ft: float,
 ) -> None:
-    if not model_speeds and linear_model is None:
+    if not model_speeds and linear_model is None and torch_model_bundle is None:
         sys.stderr.write("No model produced a prediction.\n")
         return
 
@@ -141,6 +160,24 @@ def print_predictions(
                 f"  Predicted time : {hours_to_hhmmss(eta_hours)}"
             )
 
+    if torch_model_bundle is not None:
+        torch_model, stats = torch_model_bundle
+        feature_names = stats["feature_names"].tolist()
+        base_values = dict(zip(feature_names, stats["mean"].tolist()))
+        if "distance_mi" in base_values:
+            base_values["distance_mi"] = distance_mi
+        if "elevation_gain_ft" in base_values:
+            base_values["elevation_gain_ft"] = gpx_elev_gain_ft
+
+        eta_hours = time_torch.predict_hours(torch_model, stats, base_values)
+        if eta_hours <= 0 or np.isnan(eta_hours) or np.isinf(eta_hours):
+            print("\n[torch_time_model]\n  Prediction invalid (non-positive time).")
+        else:
+            print(
+                "\n[torch_time_model]\n"
+                f"  Predicted time : {hours_to_hhmmss(eta_hours)}"
+            )
+
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
@@ -162,9 +199,10 @@ def main(argv: list[str] | None = None) -> int:
 
     model_speeds = evaluate_pace_models(args.datadir)
     linear_model = load_linear_model(DEFAULT_LINEAR_MODEL_PATH)
-    print_predictions(distance_mi, model_speeds, linear_model, elev_gain_ft)
+    torch_model_bundle = load_torch_model(DEFAULT_TORCH_MODEL_PATH)
+    print_predictions(distance_mi, model_speeds, linear_model, torch_model_bundle, elev_gain_ft)
 
-    return 0 if model_speeds or linear_model else 1
+    return 0 if model_speeds or linear_model or torch_model_bundle else 1
 
 
 if __name__ == "__main__":
