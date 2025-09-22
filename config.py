@@ -22,7 +22,7 @@ LATITUDE_COL = 'position_lat'
 LONGITUDE_COL = 'position_long'
 ELAPSED_TIME_S_COL = 'elapsed_time_s'
 
-
+M_TO_KM_MULTIPLIER = 0.001 # Meters to Kilometers
 MIPS_TO_MPH_MULTIPLIER = 3600 # Miles per second to Miles per Hour
 M_TO_FT_MULTIPLIER = 3.28084 # Meters to Feet
 MM_TO_FT_MULTIPLIER = 0.00328084 # Millimeters to Feet
