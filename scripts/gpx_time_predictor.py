@@ -15,7 +15,8 @@ from config import (
     MPS_TO_MPH_MULTIPLIER,
 )
 from models import pace as pace_models
-from utils import gpx as gu
+from models import time_linear
+from utils import gpx as gpxu
 from utils.time import hours_to_hhmmss
 
 
@@ -41,6 +42,7 @@ PACE_MODELS: tuple[PaceModel, ...] = (
     ),
 )
 
+DEFAULT_LINEAR_MODEL_PATH = Path("models/time_linear_weights.json")
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
@@ -87,20 +89,57 @@ def evaluate_pace_models(activity_dir: Path) -> dict[str, float]:
     return results
 
 
-def print_predictions(distance_mi: float, model_speeds: dict[str, float]) -> None:
-    if not model_speeds:
-        sys.stderr.write("No model produced a baseline speed.\n")
+def load_linear_model(weights_path: Path) -> time_linear.LinearTimeModel | None:
+    if not weights_path.exists():
+        sys.stderr.write(
+            f"[warn] Linear model weights not found at {weights_path}. Run the training notebook to generate them.\n"
+        )
+        return None
+
+    try:
+        return time_linear.load_model(weights_path)
+    except Exception as exc:  # pragma: no cover - defensive load guard
+        sys.stderr.write(f"[warn] Failed to load linear model weights: {exc}\n")
+        return None
+
+
+def print_predictions(
+    distance_mi: float,
+    model_speeds: dict[str, float],
+    linear_model: time_linear.LinearTimeModel | None,
+    gpx_elev_gain_ft: float,
+) -> None:
+    if not model_speeds and linear_model is None:
+        sys.stderr.write("No model produced a prediction.\n")
         return
 
-    for name, speed_mph in model_speeds.items():
-        pace_min_per_mile = 60.0 / speed_mph if speed_mph > 0 else float("nan")
-        eta_hours = distance_mi / speed_mph if speed_mph > 0 else float("inf")
-        print(
-            f"\n[{name}]\n"
-            f"  Baseline speed : {speed_mph:.2f} mph\n"
-            f"  Baseline pace  : {pace_min_per_mile:.2f} min/mi\n"
-            f"  Predicted time : {hours_to_hhmmss(eta_hours)}"
-        )
+    if model_speeds:
+        for name, speed_mph in model_speeds.items():
+            pace_min_per_mile = 60.0 / speed_mph if speed_mph > 0 else float("nan")
+            eta_hours = distance_mi / speed_mph if speed_mph > 0 else float("inf")
+            print(
+                f"\n[{name}]\n"
+                f"  Baseline speed : {speed_mph:.2f} mph\n"
+                f"  Baseline pace  : {pace_min_per_mile:.2f} min/mi\n"
+                f"  Predicted time : {hours_to_hhmmss(eta_hours)}"
+            )
+
+    if linear_model is not None:
+        feature_values = dict(zip(linear_model.feature_names, linear_model.feature_means))
+        feature_values["distance_mi"] = distance_mi
+        feature_values["elevation_gain_ft"] = gpx_elev_gain_ft
+
+        eta_hours = linear_model.predict_hours(feature_values)
+
+        if eta_hours <= 0 or np.isnan(eta_hours) or np.isinf(eta_hours):
+            print("\n[linear_time_model]\n  Prediction invalid (non-positive time).")
+        else:
+            print(
+                "\n[linear_time_model]\n"
+                f"  Features       : " + ", ".join(f"{k}={v:.2f}" for k, v in feature_values.items()) + "\n"
+                f"  Coefficients   : " + ", ".join(f"{k}={v:.4f}" for k, v in zip(linear_model.feature_names, linear_model.coefficients)) + "\n"
+                f"  Predicted time : {hours_to_hhmmss(eta_hours)}"
+            )
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -114,17 +153,18 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     try:
-        distance_mi, elev_gain_ft = gu.route_summary(args.gpxfile, metric=False)
+        distance_mi, elev_gain_ft = gpxu.route_summary(args.gpxfile, metric=False)
     except Exception as e:
         sys.stderr.write(f"Failed to read GPX file: {e}\n")
         return 1
 
-    print(f"Loaded {args.gpxfile} ({distance_mi:.2f} mi, {elev_gain_ft:.0f} ft gain)")
+    print(f"Loaded GPX file: '{args.gpxfile}' ({distance_mi:.2f} mi, {elev_gain_ft:.0f} ft gain)")
 
     model_speeds = evaluate_pace_models(args.datadir)
-    print_predictions(distance_mi, model_speeds)
+    linear_model = load_linear_model(DEFAULT_LINEAR_MODEL_PATH)
+    print_predictions(distance_mi, model_speeds, linear_model, elev_gain_ft)
 
-    return 0 if model_speeds else 1
+    return 0 if model_speeds or linear_model else 1
 
 
 if __name__ == "__main__":

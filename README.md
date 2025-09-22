@@ -2,6 +2,8 @@
 Exploratory analysis of relationships between pace, elevation, and heart rate, with models for effort categorization and route completion time prediction. `.fit` activity data collected using a Garmin Fenix 8 and `.gpx` routes built and exported from Strava.
 
 ## Structure
+- `data/`: Activity and route files.
+- `models/`: Time prediction and effort categorization models.
 - `notebooks/`: Exploratory and modeling notebooks.
   - `01-data-ingestion.ipynb`: Ingest `.fit` files, clean, and save as parquet.
   - `02-feature-engineering.ipynb`: Uses `utils/` to build new features and convert from metric to imperial.
@@ -14,11 +16,15 @@ Exploratory analysis of relationships between pace, elevation, and heart rate, w
   - `fit.py`: FIT parsing and conversion.
   - `gpx.py`: GPX parsing and route summary.
   - `time.py`: Time functions.
-- `data/`: raw files (`.fit`)
 
 
 ## Usage
-`activity_summary.py`
+`scripts/activity_summary.py`
 ```bash
 ./venv/bin/python -m scripts.activity_summary ./data/activity.parquet
+```
+
+`scripts/gpx_time_predictor.py`
+```bash
+./venv/bin/python -m scripts.gpx_time_predictor ./data/activities/ ./data/routes/route.gpx
 ```
