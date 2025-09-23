@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 from dataclasses import dataclass
 from pathlib import Path
@@ -42,8 +43,10 @@ PACE_MODELS: tuple[PaceModel, ...] = (
     ),
 )
 
-DEFAULT_LINEAR_MODEL_PATH = Path("models/time_linear_weights.json")
-DEFAULT_TORCH_MODEL_PATH = Path("models/time_torch_weights.pt")
+DEFAULT_LINEAR_MODEL_PATH = Path("models/weights/time_linear_weights.json")
+DEFAULT_TORCH_MODEL_PATH = Path("models/weights/time_torch_weights.pt")
+ZONE_FEATURE_TARGETS_PATH = Path("models/weights/zone_feature_targets.json")
+DEFAULT_TORCH_MODEL_PATH = Path("models/weights/time_torch_weights.pt")
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
@@ -121,11 +124,92 @@ def load_torch_model(
         return None
 
 
+def load_torch_model(
+    weights_path: Path,
+    device: str | None = None,
+) -> tuple[time_torch.TimeMLP, dict[str, np.ndarray]] | None:
+    if not weights_path.exists():
+        sys.stderr.write(
+            f"[warn] Torch model weights not found at {weights_path}. Run the training notebook to generate them.\n"
+        )
+        return None
+
+    try:
+        return time_torch.load_model(weights_path, device=device)
+    except Exception as exc:  # pragma: no cover - defensive load guard
+        sys.stderr.write(f"[warn] Failed to load torch model weights: {exc}\n")
+        return None
+
+
+def load_zone_feature_targets(path: Path) -> dict[str, dict[str, float]]:
+    if not path.exists():
+        sys.stderr.write(
+            f"[warn] Zone feature targets not found at {path}. Run the zone notebook to generate them.\n"
+        )
+        return {}
+
+    try:
+        with path.open("r", encoding="utf-8") as f:
+            data = json.load(f)
+    except Exception as exc:  # pragma: no cover - defensive load guard
+        sys.stderr.write(f"[warn] Failed to load zone targets: {exc}\n")
+        return {}
+
+    return {
+        zone: {k: float(v) for k, v in overrides.items() if isinstance(v, (int, float))}
+        for zone, overrides in data.items()
+    }
+
+
+def linear_prediction(
+    model: time_linear.LinearTimeModel,
+    distance_mi: float,
+    elev_gain_ft: float,
+    overrides: dict[str, float] | None = None,
+) -> tuple[dict[str, float], float]:
+    feature_values = dict(zip(model.feature_names, model.feature_means))
+    feature_values["distance_mi"] = distance_mi
+    feature_values["elevation_gain_ft"] = elev_gain_ft
+
+    if overrides:
+        for key, value in overrides.items():
+            if key in feature_values and value is not None and not np.isnan(value):
+                feature_values[key] = float(value)
+
+    eta_hours = model.predict_hours(feature_values)
+    return feature_values, eta_hours
+
+
+def torch_prediction(
+    bundle: tuple[time_torch.TimeMLP, dict[str, np.ndarray]],
+    distance_mi: float,
+    elev_gain_ft: float,
+    overrides: dict[str, float] | None = None,
+) -> tuple[dict[str, float], float]:
+    torch_model, stats = bundle
+    feature_names = stats["feature_names"].tolist()
+    base_values = dict(zip(feature_names, stats["mean"].tolist()))
+
+    if "distance_mi" in base_values:
+        base_values["distance_mi"] = distance_mi
+    if "elevation_gain_ft" in base_values:
+        base_values["elevation_gain_ft"] = elev_gain_ft
+
+    if overrides:
+        for key, value in overrides.items():
+            if key in base_values and value is not None and not np.isnan(value):
+                base_values[key] = float(value)
+
+    eta_hours = time_torch.predict_hours(torch_model, stats, base_values)
+    return base_values, eta_hours
+
+
 def print_predictions(
     distance_mi: float,
     model_speeds: dict[str, float],
     linear_model: time_linear.LinearTimeModel | None,
     torch_model_bundle: tuple[time_torch.TimeMLP, dict[str, np.ndarray]] | None,
+    zone_overrides: dict[str, dict[str, float]],
     gpx_elev_gain_ft: float,
 ) -> None:
     if not model_speeds and linear_model is None and torch_model_bundle is None:
@@ -144,38 +228,51 @@ def print_predictions(
             )
 
     if linear_model is not None:
-        feature_values = dict(zip(linear_model.feature_names, linear_model.feature_means))
-        feature_values["distance_mi"] = distance_mi
-        feature_values["elevation_gain_ft"] = gpx_elev_gain_ft
-
-        eta_hours = linear_model.predict_hours(feature_values)
+        feature_values, eta_hours = linear_prediction(linear_model, distance_mi, gpx_elev_gain_ft)
 
         if eta_hours <= 0 or np.isnan(eta_hours) or np.isinf(eta_hours):
             print("\n[linear_time_model]\n  Prediction invalid (non-positive time).")
         else:
             print(
                 "\n[linear_time_model]\n"
-                f"  Features       : " + ", ".join(f"{k}={v:.2f}" for k, v in feature_values.items()) + "\n"
-                f"  Coefficients   : " + ", ".join(f"{k}={v:.4f}" for k, v in zip(linear_model.feature_names, linear_model.coefficients)) + "\n"
+                # f"  Features       : " + ", ".join(f"{k}={v:.2f}" for k, v in feature_values.items()) + "\n"
+                # f"  Coefficients   : " + ", ".join(f"{k}={v:.4f}" for k, v in zip(linear_model.feature_names, linear_model.coefficients)) + "\n"
                 f"  Predicted time : {hours_to_hhmmss(eta_hours)}"
             )
 
-    if torch_model_bundle is not None:
-        torch_model, stats = torch_model_bundle
-        feature_names = stats["feature_names"].tolist()
-        base_values = dict(zip(feature_names, stats["mean"].tolist()))
-        if "distance_mi" in base_values:
-            base_values["distance_mi"] = distance_mi
-        if "elevation_gain_ft" in base_values:
-            base_values["elevation_gain_ft"] = gpx_elev_gain_ft
+        for zone_name, overrides in zone_overrides.items():
+            zone_features, zone_eta = linear_prediction(
+                linear_model, distance_mi, gpx_elev_gain_ft, overrides
+            )
+            if zone_eta <= 0 or np.isnan(zone_eta) or np.isinf(zone_eta):
+                continue
+            print(
+                "\n[linear_time_model:" + zone_name + "]\n"
+                # f"  Features       : " + ", ".join(
+                #     f"{k}={zone_features[k]:.2f}" for k in linear_model.feature_names
+                # ) + "\n"
+                f"  Predicted time : {hours_to_hhmmss(zone_eta)}"
+            )
 
-        eta_hours = time_torch.predict_hours(torch_model, stats, base_values)
+    if torch_model_bundle is not None:
+        base_values, eta_hours = torch_prediction(torch_model_bundle, distance_mi, gpx_elev_gain_ft)
         if eta_hours <= 0 or np.isnan(eta_hours) or np.isinf(eta_hours):
             print("\n[torch_time_model]\n  Prediction invalid (non-positive time).")
         else:
             print(
                 "\n[torch_time_model]\n"
                 f"  Predicted time : {hours_to_hhmmss(eta_hours)}"
+            )
+
+        for zone_name, overrides in zone_overrides.items():
+            zone_values, zone_eta = torch_prediction(
+                torch_model_bundle, distance_mi, gpx_elev_gain_ft, overrides
+            )
+            if zone_eta <= 0 or np.isnan(zone_eta) or np.isinf(zone_eta):
+                continue
+            print(
+                "\n[torch_time_model:" + zone_name + "]\n"
+                f"  Predicted time : {hours_to_hhmmss(zone_eta)}"
             )
 
 
@@ -200,7 +297,15 @@ def main(argv: list[str] | None = None) -> int:
     model_speeds = evaluate_pace_models(args.datadir)
     linear_model = load_linear_model(DEFAULT_LINEAR_MODEL_PATH)
     torch_model_bundle = load_torch_model(DEFAULT_TORCH_MODEL_PATH)
-    print_predictions(distance_mi, model_speeds, linear_model, torch_model_bundle, elev_gain_ft)
+    zone_overrides = load_zone_feature_targets(ZONE_FEATURE_TARGETS_PATH)
+    print_predictions(
+        distance_mi,
+        model_speeds,
+        linear_model,
+        torch_model_bundle,
+        zone_overrides,
+        elev_gain_ft,
+    )
 
     return 0 if model_speeds or linear_model or torch_model_bundle else 1
 

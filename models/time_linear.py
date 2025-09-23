@@ -7,6 +7,8 @@ from typing import Iterable
 import numpy as np
 import pandas as pd
 
+from utils import activity
+
 LINEAR_FEATURES: tuple[str, ...] = (
     "distance_mi",
     "elevation_gain_ft",
@@ -89,3 +91,14 @@ def load_model(path: Path) -> LinearTimeModel:
 def save_model(model: LinearTimeModel, path: Path) -> None:
     series = pd.Series(model.to_dict())
     series.to_json(path)
+
+def main() -> None:
+    ACTIVITY_DIR = Path('./data/parquet_run_activities')
+    WEIGHTS_PATH = Path('./models/weights/time_linear_weights.json')
+
+    summaries = activity.load_activity_summaries(ACTIVITY_DIR)
+    model = train_linear_time_model(summaries)
+    save_model(model, WEIGHTS_PATH)
+
+if __name__ == '__main__':
+    main()

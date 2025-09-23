@@ -10,7 +10,7 @@ from torch import nn
 from torch.utils.data import DataLoader, TensorDataset
 
 from models import time_linear
-
+from utils import activity
 
 @dataclass
 class TrainingConfig:
@@ -154,3 +154,31 @@ def predict_hours(model: TimeMLP, stats: dict[str, np.ndarray], features: dict[s
         tensor = torch.from_numpy(normalized).float().unsqueeze(0)
         prediction = model(tensor).item()
     return float(prediction)
+
+
+def plot_training_loss(history: Sequence[float]) -> None:
+    import matplotlib.pyplot as plt
+
+    plt.plot(history)
+    plt.xlabel("Epoch")
+    plt.ylabel("Training Loss (MSE)")
+    plt.title("Training Loss over Epochs")
+    plt.grid(alpha=0.3)
+    plt.tight_layout()
+    plt.show()
+
+
+def main() -> None:
+    ACTIVITY_DIR = Path('./data/parquet_run_activities')
+    WEIGHTS_PATH = Path('./models/weights/time_mlp_weights.pt')
+
+    summaries = activity.load_activity_summaries(ACTIVITY_DIR)
+    config = TrainingConfig(epochs=400, batch_size=32, lr=5e-4, dropout=0.1)
+    model, stats, history = train_time_mlp(summaries, config=config)
+
+    save_model(model, stats, WEIGHTS_PATH)
+    plot_training_loss(history)
+
+
+if __name__ == '__main__':
+    main()
