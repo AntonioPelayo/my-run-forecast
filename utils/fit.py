@@ -10,6 +10,16 @@ from config import (
 )
 from utils.features import elapsed_time, create_gradient
 
+
+def is_run_activity(df: pd.DataFrame) -> bool:
+    """Determine if the activity in the DataFrame is a running activity."""
+    if 'activity_type' in df.columns:
+        activity_type = df['activity_type'].iloc[0]
+        if activity_type.lower() == 'running':
+            return True
+    return False
+
+
 def fit_to_df(file_path: str) -> pd.DataFrame:
     """Read a .fit file and return a pandas DataFrame."""
     fitfile = fitparse.FitFile(file_path)

@@ -9,6 +9,8 @@ EXPECTED_FIT_COLUMNS = [
 ]
 
 DATA_PATH = Path('data')
+GARMIN_FIT_ACTIVITIES_PATH = DATA_PATH / 'garmin_fit_activities'
+PARQUET_RUN_ACTIVITIES_PATH = DATA_PATH / 'parquet_run_activities'
 
 PLT_STYLE = 'seaborn-v0_8'
 
