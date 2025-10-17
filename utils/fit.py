@@ -1,5 +1,8 @@
+from pathlib import Path
+from typing import Union
+
 import pandas as pd
-import fitparse
+from fitparse import FitFile
 
 from config import (
     EXPECTED_FIT_COLUMNS,
@@ -11,20 +14,43 @@ from config import (
 from utils.features import elapsed_time, create_gradient
 
 
-def is_run_activity(df: pd.DataFrame) -> bool:
-    """Determine if the activity in the DataFrame is a running activity."""
-    if 'activity_type' in df.columns:
-        activity_type = df['activity_type'].iloc[0]
-        if activity_type.lower() == 'running':
-            return True
-    return False
+def find_fit_files_in_directory(directory: Union[str, Path]) -> list[Path]:
+    """Return a list of .fit files in the given directory."""
+    directory = Path(directory)
+    return list(directory.glob('*.fit'))
 
 
-def fit_to_df(file_path: str) -> pd.DataFrame:
+def get_sport_from_fit(fit: FitFile) -> Union[str, str]:
+    """Return the sport string from a FIT file, if present. Lowercased when returned."""
+    sport = ''
+    sub_sport = ''
+
+    for msg in fit.get_messages('session'):
+        fields = {f.name: f.value for f in msg}
+        if fields.get('sport') is not None and sport == '':
+            sport = str(fields['sport']).lower()
+        if fields.get('sub_sport') is not None and sub_sport == '':
+            sub_sport = str(fields['sub_sport']).lower()
+        if sport != '' and sub_sport != '':
+            break
+
+    if sport == '' or sub_sport == '':
+        for msg in fit.get_messages('sport'):
+            fields = {f.name: f.value for f in msg}
+            if sport == '' and fields.get('sport') is not None:
+                sport = str(fields['sport']).lower()
+            if sub_sport == '' and fields.get('sub_sport') is not None:
+                sub_sport = str(fields['sub_sport']).lower()
+            if sport != '' and sub_sport != '':
+                break
+
+    return sport, sub_sport
+
+
+def fit_to_df(fit: FitFile) -> pd.DataFrame:
     """Read a .fit file and return a pandas DataFrame."""
-    fitfile = fitparse.FitFile(file_path)
     records = []
-    for record in fitfile.get_messages('record'):
+    for record in fit.get_messages('record'):
         record_data = {}
         for data in record:
             record_data[data.name] = data.value
@@ -33,15 +59,14 @@ def fit_to_df(file_path: str) -> pd.DataFrame:
     return df
 
 
-def fit_to_parquet(fit_path: str, parquet_path: str) -> None:
+def fit_to_parquet(fit: FitFile, parquet_path: str) -> None:
     """Convert a .fit file to a Parquet file."""
-    df = fit_to_df(fit_path)
+    df = fit_to_df(fit)
     df.to_parquet(parquet_path, index=False)
 
 
-def parse_fit_file(fit_path: str) -> pd.DataFrame:
+def parse_fit_file(fit: FitFile) -> pd.DataFrame:
     """Parse a .fit file into a DataFrame with a known structure."""
-    fit = fitparse.FitFile(fit_path)
     rows = []
 
     for record in fit.get_messages('record'):
