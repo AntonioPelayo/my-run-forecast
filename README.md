@@ -8,9 +8,6 @@ Exploratory analysis of relationships between pace, elevation, and heart rate, w
   - `01-data-ingestion.ipynb`: Ingest `.fit` files, clean, and save as parquet.
   - `02-feature-engineering.ipynb`: Uses `utils/` to build new features and convert from metric to imperial.
 - `scripts/`: Executable scripts.
-  - `activity_summary.py`: Print summary statistics for a single activity file.
-  - `fit_ingestion.py`: Ingest Garmin `.fit` files, filter for runs, and save as parquet.
-  - `gpx_time_predictor.py`: Predict time to complete a route given distance and elevation gain.
 - `utils/`: Shared helpers.
   - `activity.py`: Activity loading and summary functions.
   - `features.py`: Feature engineering functions.
@@ -26,15 +23,4 @@ Connect watch to computer and using an app such as "Android File Transfer" copy 
 Then run the ingestion script to filter for running activities and convert `.fit` files to parquet into `data/parquet_run_activities/`.
 ```bash
 ./venv/bin/python -m scripts.fit_ingestion
-```
-
-### Scripts
-`scripts/activity_summary.py`
-```bash
-./venv/bin/python -m scripts.activity_summary ./data/activity.parquet
-```
-
-`scripts/gpx_time_predictor.py`
-```bash
-./venv/bin/python -m scripts.gpx_time_predictor ./data/activities/ ./data/routes/route.gpx
 ```
