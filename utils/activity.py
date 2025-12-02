@@ -41,8 +41,10 @@ def load_activity_summary(activity_file: Path) -> dict[str, float]:
 
     distance_mi = distance_m * M_TO_MI_MULTIPLIER if not np.isnan(distance_m) else float("nan")
     elevation_gain_ft = elevation_gain_m * M_TO_FT_MULTIPLIER if not np.isnan(elevation_gain_m) else float("nan")
+    activity_date = df['timestamp'].min() if 'timestamp' in df.columns else None
 
     return {
+        "activity_date": activity_date, # GMT start timestamp
         "elapsed_time_hours": elapsed_hours,
         "distance_m": distance_m,
         "distance_mi": distance_mi,

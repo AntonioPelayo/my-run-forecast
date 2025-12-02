@@ -100,29 +100,31 @@ def parse_fit_file(fit: FitFile) -> pd.DataFrame:
         df['cadence'] = pd.to_numeric(df['cadence'], errors='coerce')
         df['cadence'] += pd.to_numeric(df['fractional_cadence'], errors='coerce')
 
-    # New data fields
-    df['elapsed_time_s'] = elapsed_time(df['timestamp'])
-    df = create_gradient(df)
-
     # Drop original columns after conversion
     df.drop(columns=[
-        col for col in [
-            'altitude', 'enhanced_altitude', 'fractional_cadence',
-            'enhanced_speed', 'speed'
-        ]
-        if col in df.columns],
+            col for col in [
+                'altitude', 'enhanced_altitude', 'fractional_cadence',
+                'enhanced_speed', 'speed'
+            ]
+            if col in df.columns
+        ],
         inplace=True
     )
 
-    # vertical change (signed), positive gains, and cumulative gain
-    df['vert_change_m'] = df['altitude_m'].diff().fillna(0)
-    df['vert_gain_m'] = df['vert_change_m'].clip(lower=0)
-    df['cum_vert_gain_m'] = df['vert_gain_m'].cumsum()
+    # New data fields
+    df['elapsed_time_s'] = elapsed_time(df['timestamp'])
+    sport, sub_sport = get_sport_from_fit(fit)
+    df['sport'] = sport
+    df['sub_sport'] = sub_sport
 
     # Convert units
-    # if not metric:
     if 'altitude_m' in df.columns:
         df['altitude_ft'] = df['altitude_m'] * M_TO_FT_MULTIPLIER
+        df = create_gradient(df)
+        # vertical change (signed), positive gains, and cumulative gain
+        df['vert_change_m'] = df['altitude_m'].diff().fillna(0)
+        df['vert_gain_m'] = df['vert_change_m'].clip(lower=0)
+        df['cum_vert_gain_m'] = df['vert_gain_m'].cumsum()
     if 'distance_m' in df.columns:
         df['distance_mi'] = df['distance_m'] * M_TO_MI_MULTIPLIER
     if 'vert_change_m' in df.columns:
