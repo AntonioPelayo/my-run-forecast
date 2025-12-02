@@ -1,6 +1,6 @@
 fitparse
-matplotlib
 notebook
 numpy
 pandas
+plotly[express]
 torch
