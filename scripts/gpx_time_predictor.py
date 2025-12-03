@@ -44,7 +44,6 @@ PACE_MODELS: tuple[PaceModel, ...] = (
 )
 
 DEFAULT_LINEAR_MODEL_PATH = Path("models/weights/time_linear_weights.json")
-DEFAULT_TORCH_MODEL_PATH = Path("models/weights/time_torch_weights.pt")
 ZONE_FEATURE_TARGETS_PATH = Path("models/weights/zone_feature_targets.json")
 DEFAULT_TORCH_MODEL_PATH = Path("models/weights/time_torch_weights.pt")
 
@@ -104,23 +103,6 @@ def load_linear_model(weights_path: Path) -> time_linear.LinearTimeModel | None:
         return time_linear.load_model(weights_path)
     except Exception as exc:  # pragma: no cover - defensive load guard
         sys.stderr.write(f"[warn] Failed to load linear model weights: {exc}\n")
-        return None
-
-
-def load_torch_model(
-    weights_path: Path,
-    device: str | None = None,
-) -> tuple[time_torch.TimeMLP, dict[str, np.ndarray]] | None:
-    if not weights_path.exists():
-        sys.stderr.write(
-            f"[warn] Torch model weights not found at {weights_path}. Run the training notebook to generate them.\n"
-        )
-        return None
-
-    try:
-        return time_torch.load_model(weights_path, device=device)
-    except Exception as exc:  # pragma: no cover - defensive load guard
-        sys.stderr.write(f"[warn] Failed to load torch model weights: {exc}\n")
         return None
 
 

@@ -1,0 +1,1 @@
+{"intercept":2.6745743354,"coefficients":[0.2358528123,-0.0001303343,-0.0022563627,-0.0235176435,-0.0023253983],"feature_names":["distance_mi","elevation_gain_ft","average_hr","avg_cadence","avg_power"],"feature_means":[6.7922919242,1129.6111074909,154.3405345348,68.6327132968,276.0005043408]}

@@ -44,7 +44,10 @@ def load_activity_summary(activity_file: Path) -> dict[str, float]:
     activity_date = df['timestamp'].min() if 'timestamp' in df.columns else None
 
     return {
+        "activity_path": str(activity_file),
         "activity_date": activity_date, # GMT start timestamp
+        "activity_type": df['sport'].iloc[0] if 'sport' in df.columns else "unknown",
+        "activity_subtype": df['sub_sport'].iloc[0] if 'sub_sport' in df.columns else "unknown",
         "elapsed_time_hours": elapsed_hours,
         "distance_m": distance_m,
         "distance_mi": distance_mi,
@@ -63,7 +66,7 @@ def load_activity_summaries(activity_dir: Path) -> pd.DataFrame:
         summary = load_activity_summary(path)
         if not summary:
             continue
-        records.append({"activity_path": path, **summary})
+        records.append(summary)
     return pd.DataFrame.from_records(records)
 
 
