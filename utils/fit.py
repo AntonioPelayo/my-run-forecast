@@ -6,21 +6,24 @@ from fitparse import FitFile
 
 from config import (
     EXPECTED_FIT_COLUMNS,
+    UNKNOWN_COLUMN_MAP,
     M_TO_FT_MULTIPLIER,
     M_TO_MI_MULTIPLIER,
     MPS_TO_MPH_MULTIPLIER,
     MM_TO_FT_MULTIPLIER,
 )
-from utils.features import elapsed_time, create_gradient
+from utils.features import (
+    elapsed_seconds, compute_gradient, percent_grade, grade_degrees
+)
 
 
-def list_fit_files_in_dir(directory: Union[str, Path]) -> list[Path]:
+def list_fit_files(directory: Union[str, Path]) -> list[Path]:
     """Return a list of .fit files in the given directory."""
     directory = Path(directory)
     return list(directory.glob('*.fit'))
 
 
-def get_sport_from_fit(fit: FitFile) -> Union[str, str]:
+def get_sport(fit: FitFile) -> Union[str, str]:
     """Return the sport string from a FIT file, if present. Lowercased when returned."""
     sport = ''
     sub_sport = ''
@@ -49,13 +52,17 @@ def get_sport_from_fit(fit: FitFile) -> Union[str, str]:
 
 def fit_to_df(fit: FitFile) -> pd.DataFrame:
     """Read a .fit file and return a pandas DataFrame."""
-    records = []
+    rows = []
     for record in fit.get_messages('record'):
-        record_data = {}
-        for data in record:
-            record_data[data.name] = data.value
-        records.append(record_data)
-    df = pd.DataFrame(records)
+        data = {d.name: d.value for d in record}
+        rows.append(data)
+
+    df = pd.DataFrame(rows)
+    if df.empty:
+        df = pd.DataFrame(columns=EXPECTED_FIT_COLUMNS)
+
+    df.rename(columns=UNKNOWN_COLUMN_MAP, inplace=True)
+    df['sport'], df['sub_sport'] = get_sport(fit)
     return df
 
 
@@ -65,80 +72,23 @@ def fit_to_parquet(fit: FitFile, parquet_path: str) -> None:
     df.to_parquet(parquet_path, index=False)
 
 
-def parse_fit_file(fit: FitFile) -> pd.DataFrame:
-    """Parse a .fit file into a DataFrame with a known structure."""
-    rows = []
-
-    for record in fit.get_messages('record'):
-        record = {d.name: d.value for d in record}
-        rows.append(record)
-
-    if not rows:
-        return pd.DataFrame(columns=EXPECTED_FIT_COLUMNS)
-
-    df = pd.DataFrame(rows)
-
-    # Remove unknown columns
-    df = df[[col for col in df.columns if 'unknown' not in col]]
-
-    # TODO: Update column names to use constants from config.py
-    # Standardize units and columns
-    if 'enhanced_altitude' in df.columns:
-        df['altitude_m'] = pd.to_numeric(df['enhanced_altitude'], errors='coerce')
-    elif 'altitude' in df.columns:
-        df['altitude_m'] = pd.to_numeric(df['altitude'], errors='coerce')
-
-    if 'enhanced_speed' in df.columns:
-        df['speed_mps'] = pd.to_numeric(df['enhanced_speed'], errors='coerce')
-    elif 'speed' in df.columns:
-        df['speed_mps'] = pd.to_numeric(df['speed'], errors='coerce')
-
-    if 'distance' in df.columns:
-        df['distance_m'] = pd.to_numeric(df['distance'], errors='coerce')
-
+def standardize_fit_df(df: pd.DataFrame) -> pd.DataFrame:
     if 'fractional_cadence' in df.columns:
-        df['cadence'] = pd.to_numeric(df['cadence'], errors='coerce')
-        df['cadence'] += pd.to_numeric(df['fractional_cadence'], errors='coerce')
+        df['complete_cadence'] = df['cadence'] + df['fractional_cadence']
 
-    # Drop original columns after conversion
-    df.drop(columns=[
-            col for col in [
-                'altitude', 'enhanced_altitude', 'fractional_cadence',
-                'enhanced_speed', 'speed'
-            ]
-            if col in df.columns
-        ],
-        inplace=True
-    )
+    df['elapsed_seconds'] = elapsed_seconds(df['timestamp'])
 
-    # New data fields
-    df['elapsed_time_s'] = elapsed_time(df['timestamp'])
-    sport, sub_sport = get_sport_from_fit(fit)
-    df['sport'] = sport
-    df['sub_sport'] = sub_sport
+    if df['sub_sport'].iloc[0] == 'treadmill':
+        df.reset_index(drop=True, inplace=True)
+        return df
 
-    # Convert units
-    if 'altitude_m' in df.columns:
-        df['altitude_ft'] = df['altitude_m'] * M_TO_FT_MULTIPLIER
-        df = create_gradient(df)
-        # vertical change (signed), positive gains, and cumulative gain
-        df['vert_change_m'] = df['altitude_m'].diff().fillna(0)
-        df['vert_gain_m'] = df['vert_change_m'].clip(lower=0)
-        df['cum_vert_gain_m'] = df['vert_gain_m'].cumsum()
-    if 'distance_m' in df.columns:
-        df['distance_mi'] = df['distance_m'] * M_TO_MI_MULTIPLIER
-    if 'vert_change_m' in df.columns:
-        df['vert_change_ft'] = df['vert_change_m'] * M_TO_FT_MULTIPLIER
-    if 'vert_gain_m' in df.columns:
-        df['vert_gain_ft'] = df['vert_gain_m'] * M_TO_FT_MULTIPLIER
-    if 'cum_vert_gain_m' in df.columns:
-        df['cum_vert_gain_ft'] = df['cum_vert_gain_m'] * M_TO_FT_MULTIPLIER
-    if 'speed_mps' in df.columns:
-        df['speed_mph'] = df['speed_mps'] * MPS_TO_MPH_MULTIPLIER
-    if 'step_length' in df.columns:
-        df['step_length_ft'] = df['step_length'] * MM_TO_FT_MULTIPLIER
-    if 'temperature' in df.columns:
-        df['temperature_f'] = (df['temperature'] * 9/5) + 32
+    df['altitude_change'] = df['enhanced_altitude'].diff().fillna(0)
+    df['altitude_gain'] = df['altitude_change'].clip(lower=0)
+    df['cum_altitude_gain'] = df['altitude_gain'].cumsum()
+
+    df['gradient'] = compute_gradient(df['enhanced_altitude'], df['distance'])
+    df['percent_grade'] = percent_grade(df['gradient'])
+    df['grade_degrees'] = grade_degrees(df['gradient'])
 
     df.reset_index(drop=True, inplace=True)
     return df

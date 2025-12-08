@@ -16,14 +16,14 @@ def parse_args() -> argparse.Namespace:
         "--source",
         type=Path,
         default=None,
-        help="Directory containing .fit files (defaults to GARMIN_FIT_ACTIVITIES_PATH from config).",
+        help="Directory containing .fit files (defaults to GARMIN_FIT_ACTIVITIES_PATH from config)."
     )
     parser.add_argument(
         "-d",
         "--destination",
         type=Path,
         default=None,
-        help="Directory to write Parquet files (defaults to PARQUET_RUN_ACTIVITIES_PATH from config).",
+        help="Directory to write Parquet files (defaults to PARQUET_RUN_ACTIVITIES_PATH from config)."
     )
     parser.add_argument(
         "--mode",
@@ -32,12 +32,16 @@ def parse_args() -> argparse.Namespace:
         help=(
             "'replace' clears the destination directory before ingesting. "
             "'incremental' only ingests .fit files that are missing in the destination."
-        ),
+        )
     )
     return parser.parse_args()
 
 
-def ensure_directories(source_dir: Path, destination_dir: Path, mode: str) -> None:
+def ensure_directories(
+    source_dir: Path,
+    destination_dir: Path,
+    mode: str
+) -> None:
     if not source_dir.exists():
         raise FileNotFoundError(f"Source directory does not exist: {source_dir}")
     if mode == "replace" and destination_dir.exists():
@@ -51,12 +55,6 @@ def ensure_directories(source_dir: Path, destination_dir: Path, mode: str) -> No
     destination_dir.mkdir(parents=True, exist_ok=True)
 
 
-def collect_activity_files(source_dir: Path) -> list[Path]:
-    activity_files = sorted(source_dir.glob("*.fit"))
-    print(f"{len(activity_files)} .fit files found in {source_dir}")
-    return activity_files
-
-
 def existing_parquet_stems(destination_dir: Path) -> set[str]:
     return {parquet_file.stem for parquet_file in destination_dir.glob("*.parquet")}
 
@@ -64,7 +62,7 @@ def existing_parquet_stems(destination_dir: Path) -> set[str]:
 def ingest_fit_files(
     activity_files: list[Path],
     destination_dir: Path,
-    mode: str,
+    mode: str
 ) -> None:
     transformed_count = 0
     skipped_count = 0
@@ -76,29 +74,33 @@ def ingest_fit_files(
             continue
 
         fit = FitFile(str(fit_file))
-        sport, sub_sport = fit_utils.get_sport_from_fit(fit)
+        sport, sub_sport = fit_utils.get_sport(fit)
 
         if sport != "running" and sub_sport != "running":
             skipped_count += 1
             continue
 
-        df = fit_utils.parse_fit_file(fit)
+        fit_df = fit_utils.fit_to_df(fit)
+        df = fit_utils.standardize_fit_df(fit_df)
+        df['origin_file_name'] = fit_file.name
         df.to_parquet(destination_dir / f"{fit_file.stem}.parquet", index=False)
         transformed_count += 1
 
     print(
         f"{transformed_count} run activities converted to Parquet in {destination_dir}. "
-        f"Skipped {skipped_count} files."
+        f"Skipped {skipped_count} non-running activities."
     )
+    print(df.head())
 
 
 def main() -> None:
     args = parse_args()
     source_dir = args.source or GARMIN_FIT_ACTIVITIES_PATH
     destination_dir = args.destination or PARQUET_RUN_ACTIVITIES_PATH
-
     ensure_directories(source_dir, destination_dir, args.mode)
-    activity_files = collect_activity_files(source_dir)
+
+    activity_files = fit_utils.list_fit_files(source_dir)
+    print(f"{len(activity_files)} .fit files found in {source_dir}")
 
     ingest_fit_files(activity_files, destination_dir, args.mode)
 

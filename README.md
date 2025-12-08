@@ -1,5 +1,5 @@
 # my-run-forecast
-Exploratory analysis of relationships between pace, elevation, and heart rate, with models for effort categorization and route completion time prediction. `.fit` activity data collected using a Garmin Fenix 8 and `.gpx` routes built and exported from Strava.
+Exploratory analysis of relationships between pace, elevation, and heart rate, with models for effort categorization and route completion time prediction. `.fit` activity data collected using a Garmin Fenix 8 and `.gpx` routes built and exported using Strava.
 
 ## Structure
 - `data/`: Activity and route files.
@@ -8,6 +8,8 @@ Exploratory analysis of relationships between pace, elevation, and heart rate, w
 - `scripts/`: Executable scripts.
 - `utils/`: Shared helpers.
 
+## Data
+Data from `.fit` files are recorded in metric units. Imperial conversions are applied only after all data manipulations and are used exclusively for final display and visualization.
 
 ## Usage
 ### Setup
