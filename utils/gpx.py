@@ -5,13 +5,6 @@ from typing import Optional, List, Tuple
 
 import pandas as pd
 
-from config import (
-    DISTANCE_M_COL, ELEVATION_M_COL,
-    LATITUDE_COL, LONGITUDE_COL,
-    M_TO_MI_MULTIPLIER, M_TO_FT_MULTIPLIER,
-    DISTANCE_MI_COL, ELEVATION_FT_COL
-)
-
 def _haversine(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     """Return distance in meters between two lat/lon points."""
     R = 6371000.0
@@ -57,12 +50,11 @@ def parse_gpx_to_df(gpx_content: str) -> pd.DataFrame:
 
     if not pts:
         return pd.DataFrame(columns=[
-            LATITUDE_COL, LONGITUDE_COL,
-            ELEVATION_M_COL,
-            DISTANCE_M_COL,
-            "delta_m",
-            ELEVATION_FT_COL,
-            DISTANCE_MI_COL
+            'position_lat',
+            'position_lon',
+            'altitude',
+            'distance',
+            'distance_change'
         ])
 
     rows = []
@@ -75,13 +67,11 @@ def parse_gpx_to_df(gpx_content: str) -> pd.DataFrame:
             d = _haversine(prev[0], prev[1], lat, lon)
         cum += d
         rows.append({
-            LATITUDE_COL: lat,
-            LONGITUDE_COL: lon,
-            ELEVATION_M_COL: ele,
-            DISTANCE_M_COL: cum,
-            "delta_m": d,
-            ELEVATION_FT_COL: ele * M_TO_FT_MULTIPLIER,
-            DISTANCE_MI_COL: cum * M_TO_MI_MULTIPLIER,
+            'position_lat': lat,
+            'position_lon': lon,
+            'altitude': ele,
+            'distance': cum,
+            'distance_change': d
         })
         prev = (lat, lon)
 
@@ -89,25 +79,19 @@ def parse_gpx_to_df(gpx_content: str) -> pd.DataFrame:
     return df
 
 
-def read_gpx_file(gpx_path: Path) -> pd.DataFrame:
+def read_gpx(gpx_path: Path) -> pd.DataFrame:
     with open(gpx_path, 'rb') as f:
         gpx_bytes = f.read()
-        # print(f'Read from path: {gpx_path} ({len(gpx_bytes)} bytes)')
 
     gpx_content = gpx_bytes.decode('utf-8', errors='ignore')
 
     return parse_gpx_to_df(gpx_content)
 
 
-def route_summary(gpx_path: Path, metric=True) -> tuple[float, float]:
-    route_df = read_gpx_file(gpx_path)
-    if route_df.empty:
-        raise RuntimeError(f"GPX file {gpx_path} contained no route points")
-    if metric:
-        distance = float(route_df[DISTANCE_M_COL].iloc[-1])
-        elevation_gain = float(route_df[ELEVATION_M_COL].diff().clip(lower=0).sum())
-    else:
-        distance = float(route_df[DISTANCE_MI_COL].iloc[-1])
-        elevation_gain = float(route_df[ELEVATION_FT_COL].diff().clip(lower=0).sum())
+def route_summary(df: pd.DataFrame) -> tuple[float, float]:
+    if df.empty:
+        raise RuntimeError(f"GPX contained no route points")
 
+    distance = float(df['distance'].iloc[-1])
+    elevation_gain = float(df['altitude'].diff().clip(lower=0).sum())
     return distance, elevation_gain
