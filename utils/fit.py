@@ -14,7 +14,7 @@ from config import (
 from utils.features import elapsed_time, create_gradient
 
 
-def find_fit_files_in_directory(directory: Union[str, Path]) -> list[Path]:
+def list_fit_files_in_dir(directory: Union[str, Path]) -> list[Path]:
     """Return a list of .fit files in the given directory."""
     directory = Path(directory)
     return list(directory.glob('*.fit'))
