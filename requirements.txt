@@ -1,4 +1,6 @@
 fitparse
+geopy
+gpxpy
 notebook
 numpy
 pandas
