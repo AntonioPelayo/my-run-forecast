@@ -86,11 +86,8 @@ def ingest_fit_files(
         df.to_parquet(destination_dir / f"{fit_file.stem}.parquet", index=False)
         transformed_count += 1
 
-    print(
-        f"{transformed_count} run activities converted to Parquet in {destination_dir}. "
-        f"Skipped {skipped_count} non-running activities."
-    )
-    print(df.head())
+    print(f"{transformed_count} run activities converted to Parquet in {destination_dir}. ")
+    print(f"Skipped {skipped_count} non-running activities.")
 
 
 def main() -> None:

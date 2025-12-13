@@ -13,7 +13,11 @@ from config import (
     MM_TO_FT_MULTIPLIER,
 )
 from utils.features import (
-    elapsed_seconds, compute_gradient, percent_grade, grade_degrees
+    elapsed_seconds,
+    gradient,
+    percent_grade,
+    grade_degrees,
+    semicircle_to_degrees
 )
 
 
@@ -73,6 +77,7 @@ def fit_to_parquet(fit: FitFile, parquet_path: str) -> None:
 
 
 def standardize_fit_df(df: pd.DataFrame) -> pd.DataFrame:
+    """Standardize and add additional features to a DataFrame created from a FIT file."""
     if 'fractional_cadence' in df.columns:
         df['complete_cadence'] = df['cadence'] + df['fractional_cadence']
 
@@ -82,11 +87,14 @@ def standardize_fit_df(df: pd.DataFrame) -> pd.DataFrame:
         df.reset_index(drop=True, inplace=True)
         return df
 
+    df['position_lat'] = semicircle_to_degrees(df['position_lat'])
+    df['position_long'] = semicircle_to_degrees(df['position_long'])
+
     df['altitude_change'] = df['enhanced_altitude'].diff().fillna(0)
     df['altitude_gain'] = df['altitude_change'].clip(lower=0)
     df['cum_altitude_gain'] = df['altitude_gain'].cumsum()
 
-    df['gradient'] = compute_gradient(df['enhanced_altitude'], df['distance'])
+    df['gradient'] = gradient(df['enhanced_altitude'], df['distance'])
     df['percent_grade'] = percent_grade(df['gradient'])
     df['grade_degrees'] = grade_degrees(df['gradient'])
 

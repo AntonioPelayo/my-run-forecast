@@ -7,10 +7,13 @@ import numpy as np
 import pandas as pd
 
 from config import (
-    M_TO_FT_MULTIPLIER, M_TO_MI_MULTIPLIER, M_TO_KM_MULTIPLIER
+    M_TO_FT_MULTIPLIER,
+    M_TO_MI_MULTIPLIER,
+    M_TO_KM_MULTIPLIER
 )
+from time import seconds_to_hours
 
-def load_activity_summary(activity_file: Path) -> dict[str, float]:
+def activity_summary(activity_file: Path) -> dict[str, float]:
     """Load a single activity parquet file and compute basic summary metrics."""
     try:
         df = pd.read_parquet(activity_file)
@@ -22,7 +25,7 @@ def load_activity_summary(activity_file: Path) -> dict[str, float]:
         sys.stderr.write(f"[warn] Activity {activity_file} is empty\n")
         return {}
 
-    elapsed_hours = _to_hours(_final_value(df, "elapsed_time_s"))
+    elapsed_hours = seconds_to_hours(_final_value(df, "elapsed_seconds"))
 
     distance_m = _final_value(df, "distance")
     if np.isnan(distance_m):
@@ -59,11 +62,11 @@ def load_activity_summary(activity_file: Path) -> dict[str, float]:
     }
 
 
-def load_activity_summaries(activity_dir: Path) -> pd.DataFrame:
-    """Load summaries for every parquet file in a directory."""
+def activities_summary(activity_dir: Path) -> pd.DataFrame:
+    """Create summaries for every parquet file in a directory."""
     records = []
     for path in sorted(activity_dir.glob("*.parquet")):
-        summary = load_activity_summary(path)
+        summary = activity_summary(path)
         if not summary:
             continue
         records.append(summary)
@@ -72,7 +75,7 @@ def load_activity_summaries(activity_dir: Path) -> pd.DataFrame:
 
 def print_activity_summary(activity_file: Path, metric: bool = False) -> None:
     """Print a summary for a single activity using the loader above."""
-    summary = load_activity_summary(activity_file)
+    summary = activity_summary(activity_file)
     if not summary:
         return
 
@@ -128,7 +131,3 @@ def _mean_value(df: pd.DataFrame, column: str) -> float:
         return float("nan")
     value = df[column].mean(skipna=True)
     return float(value) if not np.isnan(value) else float("nan")
-
-
-def _to_hours(seconds: float) -> float:
-    return seconds / 3600.0 if not np.isnan(seconds) else float("nan")

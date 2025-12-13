@@ -10,18 +10,20 @@ def elapsed_seconds(timestamps: pd.Series) -> pd.Series:
     return (timestamps - t0).dt.total_seconds()
 
 
-def compute_gradient(altitude_col: pd.Series, distance_col: pd.Series) -> pd.DataFrame:
+def gradient(altitude: pd.Series, distance: pd.Series) -> pd.DataFrame:
     """Compute gradients using either metric (meters) or imperial (feet/miles) inputs."""
-    da = altitude_col.diff().fillna(0)
-    dd = distance_col.diff().fillna(0).replace(0, 1e-6)
+    da = altitude.diff().fillna(0)
+    dd = distance.diff().fillna(0).replace(0, 1e-6)
     return da / dd
 
 
 def percent_grade(gradient: pd.Series) -> pd.Series:
+    """Convert gradient to percent grade."""
     return gradient * 100
 
 
 def grade_degrees(gradient: pd.Series) -> pd.Series:
+    """Convert gradient to degrees."""
     return np.degrees(np.arctan(gradient))
 
 
