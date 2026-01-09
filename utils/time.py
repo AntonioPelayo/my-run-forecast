@@ -14,4 +14,4 @@ def hours_to_hhmmss(hours: float) -> str:
 
 def seconds_to_hours(seconds: float) -> float:
     """Convert seconds to decimal hours."""
-    return seconds / 3600.0 if not np.isnan(seconds) else float("nan")
+    return seconds / 3600.0 if not np.isnan(seconds) else float('nan')
