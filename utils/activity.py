@@ -6,12 +6,20 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from config import (
-    M_TO_FT_MULTIPLIER,
-    M_TO_MI_MULTIPLIER,
+from utils.config import (
     M_TO_KM_MULTIPLIER
 )
-from time import seconds_to_hours, hours_to_hhmmss
+from utils.time import seconds_to_hours, hours_to_hhmmss
+
+
+def get_last_activity_file(activity_dir: Path) -> Path | None:
+    """Return the most recent parquet activity file in a directory."""
+    parquet_files = list(activity_dir.glob('*.parquet'))
+    if not parquet_files:
+        return None
+    latest_file = max(parquet_files, key=lambda p: p.stat().st_mtime)
+    return latest_file
+
 
 def activity_summary(activity_file: Path) -> dict[str, float]:
     """Load a single activity parquet file and compute basic summary metrics."""
