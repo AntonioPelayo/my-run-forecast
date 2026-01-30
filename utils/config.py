@@ -42,10 +42,6 @@ UNKNOWN_COLUMN_MAP = {
     'unknown_90': 'performance_condition' # Integer
 }
 
-DATA_PATH = Path('data')
-GARMIN_FIT_ACTIVITIES_PATH = DATA_PATH / 'garmin_fit_activities'
-PARQUET_RUN_ACTIVITIES_PATH = DATA_PATH / 'parquet_run_activities'
-
 M_TO_KM_MULTIPLIER = 0.001 # Meters to Kilometers
 MIPS_TO_MPH_MULTIPLIER = 3600 # Miles per second to Miles per Hour
 M_TO_FT_MULTIPLIER = 3.28084 # Meters to Feet
@@ -53,3 +49,5 @@ MM_TO_FT_MULTIPLIER = 0.00328084 # Millimeters to Feet
 M_TO_MI_MULTIPLIER = 0.000621371 # Meters to Miles
 MPS_TO_MPH_MULTIPLIER = 2.23694 # Meters per Second to Miles per Hour
 FT_TO_M_MULTIPLIER = 0.3048 # Feet to Meters
+FT_IN_MI = 5280 # Feet in a Mile
+M_IN_MI = 1609.34 # Meters in a Mile

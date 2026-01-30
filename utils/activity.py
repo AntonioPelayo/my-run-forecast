@@ -12,12 +12,20 @@ from utils.config import (
 from utils.time import seconds_to_hours, hours_to_hhmmss
 
 
-def get_last_activity_file(activity_dir: Path) -> Path | None:
+def get_last_activity_file(
+    activity_dir: Path,
+    alphabetical_sort: bool=False
+) -> Path | None:
     """Return the most recent parquet activity file in a directory."""
     parquet_files = list(activity_dir.glob('*.parquet'))
     if not parquet_files:
         return None
-    latest_file = max(parquet_files, key=lambda p: p.stat().st_mtime)
+    if alphabetical_sort:
+        parquet_files.sort()
+        latest_file = parquet_files[-1]
+    else:
+        latest_file = max(parquet_files, key=lambda p: p.stat().st_mtime)
+        # latest_file = max(parquet_files, key=lambda p: p.stat().st_mtime)
     return latest_file
 
 
