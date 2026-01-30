@@ -17,7 +17,7 @@ app: Dash = Dash(
     pages_folder="pages",
     suppress_callback_exceptions=True,
 )
-
+server = app.server
 
 def _nav_links() -> list[html.A]:
     """Build a simple nav bar from the registered pages."""
@@ -35,13 +35,13 @@ def _nav_links() -> list[html.A]:
 
 app.layout = html.Div(
     [
+        html.Nav(_nav_links()),
         html.H1("My Run Forecast"),
-        html.Nav(_nav_links(), style={"marginBottom": "1.5rem"}),
         dash.page_container,
     ],
-    style={"maxWidth": "960px", "margin": "0 auto", "padding": "2rem 1rem"},
 )
 
 
 if __name__ == "__main__":
     app.run()
+    # app.run(debug=True)

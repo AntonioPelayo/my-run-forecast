@@ -10,4 +10,12 @@ dash.register_page(__name__, path="/", name="Home")
 
 
 layout = html.Div(
+    html.P(children=[
+        "💻 ",
+        html.A(
+            "Project GitHub",
+            href="https://github.com/AntonioPelayo/my-run-forecast",
+            target="_blank"
+        )
+    ])
 )

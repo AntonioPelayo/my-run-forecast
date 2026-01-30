@@ -4,7 +4,7 @@ from typing import Union
 import pandas as pd
 from fitparse import FitFile
 
-from config import (
+from utils.config import (
     EXPECTED_FIT_COLUMNS,
     UNKNOWN_COLUMN_MAP,
     M_TO_FT_MULTIPLIER,
