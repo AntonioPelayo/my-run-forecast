@@ -1,3 +1,10 @@
+"""
+Script to print a summary of an activity from a .parquet file.
+
+Usage:
+    python -m scripts.activity_summary path/to/activity.parquet
+"""
+
 import argparse
 from pathlib import Path
 

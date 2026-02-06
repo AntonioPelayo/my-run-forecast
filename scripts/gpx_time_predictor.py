@@ -1,3 +1,10 @@
+"""
+Script to predict time to complete a GPX route based on historical activities.
+
+Usage:
+    python -m scripts.gpx_time_predictor path/to/activities_dir path/to/route.gpx
+"""
+
 from __future__ import annotations
 
 import argparse
@@ -10,9 +17,7 @@ from typing import Callable, Iterable
 import numpy as np
 import pandas as pd
 
-from config import (
-    DISTANCE_M_COL,
-    ELAPSED_TIME_S_COL,
+from utils.config import (
     MPS_TO_MPH_MULTIPLIER,
 )
 from models import pace as pace_models
@@ -67,9 +72,9 @@ def iter_activity_dfs(activity_dir: Path) -> Iterable[tuple[Path, pd.DataFrame]]
 
 
 def model_speed_mph(df: pd.DataFrame, model: PaceModel) -> float:
-    if not {DISTANCE_M_COL, ELAPSED_TIME_S_COL} <= set(df.columns):
+    if not {'distance', 'elapsed_seconds'} <= set(df.columns):
         return float("nan")
-    speed_mps = model.func(df[DISTANCE_M_COL], df[ELAPSED_TIME_S_COL])
+    speed_mps = model.func(df['distance'], df['elapsed_seconds'])
     if pd.isna(speed_mps):
         return float("nan")
     return float(speed_mps * MPS_TO_MPH_MULTIPLIER)
@@ -260,7 +265,6 @@ def print_predictions(
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
-
     if not args.datadir.exists() or not args.datadir.is_dir():
         sys.stderr.write(f"Directory {args.datadir} does not exist or is not a directory.\n")
         return 2
@@ -269,24 +273,24 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     try:
-        distance_mi, elev_gain_ft = gpxu.route_summary(args.gpxfile, metric=False)
+        distance, elev_gain = gpxu.route_summary(args.gpxfile)
     except Exception as e:
         sys.stderr.write(f"Failed to read GPX file: {e}\n")
         return 1
 
-    print(f"Loaded GPX file: '{args.gpxfile}' ({distance_mi:.2f} mi, {elev_gain_ft:.0f} ft gain)")
+    print(f"Loaded GPX file: '{args.gpxfile}' ({distance:.2f}m, {elev_gain:.0f}m gain)")
 
     model_speeds = evaluate_pace_models(args.datadir)
     linear_model = load_linear_model(DEFAULT_LINEAR_MODEL_PATH)
     torch_model_bundle = load_torch_model(DEFAULT_TORCH_MODEL_PATH)
     zone_overrides = load_zone_feature_targets(ZONE_FEATURE_TARGETS_PATH)
     print_predictions(
-        distance_mi,
+        distance,
         model_speeds,
         linear_model,
         torch_model_bundle,
         zone_overrides,
-        elev_gain_ft,
+        elev_gain,
     )
 
     return 0 if model_speeds or linear_model or torch_model_bundle else 1

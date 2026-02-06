@@ -22,3 +22,9 @@ Then run the ingestion script to filter for running activities and convert `.fit
 ```bash
 ./venv/bin/python -m scripts.fit_ingestion
 ```
+
+### Dash Web App
+For dash app development and testing, run the following command to start the app locally:
+```bash
+./venv/bin/python dash_app/app.py
+```

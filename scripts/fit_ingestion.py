@@ -1,11 +1,19 @@
+"""
+Run from the command line to ingest Garmin .fit activity files and convert to Parquet format.
+Usage (from project root):
+    python -m scripts.fit_ingestion [--source <fit_files_dir>] [--destination <parquet_output_dir>] [--mode <replace|incremental>]
+"""
+
 import argparse
 import shutil
 from pathlib import Path
 
 from fitparse import FitFile
 
-from config import GARMIN_FIT_ACTIVITIES_PATH, PARQUET_RUN_ACTIVITIES_PATH
 from utils import fit as fit_utils
+
+GARMIN_FIT_ACTIVITIES_PATH = Path('data/garmin_fit_activities')
+PARQUET_RUN_ACTIVITIES_PATH = Path('data/parquet_run_activities')
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(

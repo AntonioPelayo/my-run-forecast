@@ -1,8 +1,15 @@
+"""
+Script to print total distance and elevation gain from a gpx file.
+
+Usage:
+    python -m scripts.gpx_summary path/to/file.gpx [--imperial]
+"""
+
 import argparse
 from pathlib import Path
 
 from utils import gpx as gpx_utils
-from config import M_TO_FT_MULTIPLIER, M_TO_MI_MULTIPLIER, M_TO_KM_MULTIPLIER
+from utils.config import M_TO_FT_MULTIPLIER, M_TO_MI_MULTIPLIER, M_TO_KM_MULTIPLIER
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(

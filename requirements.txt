@@ -2,6 +2,7 @@
 fitparse
 geopy
 gpxpy
+gunicorn
 notebook
 numpy
 pandas
