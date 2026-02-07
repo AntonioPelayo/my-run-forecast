@@ -71,11 +71,12 @@ def activity_summary(activity_file: Path) -> dict[str, float]:
     return {
         'activity_path': str(activity_file),
         'activity_date': activity_date, # GMT start timestamp
-        'activity_type': df['sport'].iloc[0] if 'sport' in df.columns else 'unknown',
-        'activity_subtype': df['sub_sport'].iloc[0] if 'sub_sport' in df.columns else 'unknown',
+        'sport': df['sport'].iloc[0] if 'sport' in df.columns else 'unknown',
+        'sub_sport': df['sub_sport'].iloc[0] if 'sub_sport' in df.columns else 'unknown',
+        'elapsed_seconds': _final_value(df, 'elapsed_seconds'),
         'elapsed_time': hhmmss,
-        'distance_m': distance_m,
-        'elevation_gain_m': elevation_gain_m,
+        'distance': distance_m,
+        'cum_altitude_gain': elevation_gain_m,
         'average_pace': minute_per_km,
         'average_hr': _mean_value(df, 'heart_rate'),
         'avg_cadence': _mean_value(df, 'cadence'),

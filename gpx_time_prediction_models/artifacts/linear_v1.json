@@ -1,0 +1,20 @@
+{
+  "model_version": "linear_v1",
+  "intercept": -140.53263211389972,
+  "coefficients": [
+    0.4239563927826126,
+    0.6894288107635492,
+    871.0794340539082
+  ],
+  "feature_names": [
+    "distance",
+    "cum_altitude_gain",
+    "is_trail"
+  ],
+  "feature_means": [
+    10827.664965986394,
+    320.0489795918368,
+    0.6258503401360545
+  ],
+  "target_name": "elapsed_seconds"
+}

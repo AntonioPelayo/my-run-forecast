@@ -41,6 +41,19 @@ UNKNOWN_COLUMN_MAP = {
     'unknown_87': 'cycle_length', # Millimeters
     'unknown_90': 'performance_condition' # Integer
 }
+ADDITIONAL_COLUMNS = [
+    'sport',
+    'sub_sport',
+    'complete_cadence', # SPM
+    'elapsed_seconds', # Seconds since start of activity
+    'altitude_change', # Meters
+    'altitude_gain', # Meters
+    'cum_altitude_gain', # Meters
+    'gradient',
+    'percent_grade', # Percent
+    'grade_degrees', # Degrees
+    'origin_file_name'
+]
 
 M_TO_KM_MULTIPLIER = 0.001 # Meters to Kilometers
 MIPS_TO_MPH_MULTIPLIER = 3600 # Miles per second to Miles per Hour
