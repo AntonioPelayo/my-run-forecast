@@ -19,23 +19,13 @@ app: Dash = Dash(
 )
 server = app.server
 
-def _nav_links() -> list[html.A]:
-    """Build a simple nav bar from the registered pages."""
-    links: list[html.A] = []
-    for page in dash.page_registry.values():
-        links.append(
-            html.A(
-                page["name"],
-                href=page["path"],
-                style={"marginRight": "1rem"},
-            )
-        )
-    return links
-
 
 app.layout = html.Div(
     [
-        html.Nav(_nav_links()),
+        html.Nav([
+            html.A("Home", href="/", style={"marginRight": "1rem"}),
+            html.A("GPX Route Completion Time Predictor", href="/gpx_time_predictor", style={"marginRight": "1rem"}),
+        ]),
         html.H1("My Run Forecast"),
         dash.page_container,
     ],
@@ -44,4 +34,3 @@ app.layout = html.Div(
 
 if __name__ == "__main__":
     app.run()
-    # app.run(debug=True)
