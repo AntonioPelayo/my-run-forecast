@@ -6,7 +6,6 @@ venv/
 
 *.csv
 *.fit
-*.gpx
 *.parquet
 .DS_Store
 .env

@@ -26,5 +26,5 @@ Then run the ingestion script to filter for running activities and convert `.fit
 ### Dash Web App
 For dash app development and testing, run the following command to start the app locally:
 ```bash
-./venv/bin/python dash_app/app.py
+./venv/bin/python -m gunicorn dash_app.app:server --reload
 ```

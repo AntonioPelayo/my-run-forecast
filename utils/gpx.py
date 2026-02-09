@@ -11,7 +11,11 @@ def gpx_to_df(gpx_path: Path) -> pd.DataFrame:
 
     gpx_pts = []
     for point in gpx.tracks[0].segments[0].points:
-        gpx_pts.append((point.latitude, point.longitude, point.elevation))
+        try:
+            elevation = point.elevation
+        except AttributeError:
+            elevation = 0
+        gpx_pts.append((point.latitude, point.longitude, elevation))
     df = pd.DataFrame(gpx_pts, columns=['position_lat', 'position_long', 'altitude'])
 
     # Cumulative metrics
@@ -21,6 +25,8 @@ def gpx_to_df(gpx_path: Path) -> pd.DataFrame:
         for x1, x2 in zip(coords[:-1], coords[1:])
     ]
     df['cum_distance'] = df.distance_change.cumsum()
+    if df.altitude.isnull().all():
+        df['altitude'] = 0.0
     df['altitude_change'] = df.altitude.diff()
     df['cum_altitude_gain'] = df['altitude_change'].clip(lower=0).cumsum()
 
@@ -33,6 +39,7 @@ def route_summary(gpx_path: Path) -> tuple[float, float]:
         raise RuntimeError(f"GPX contained no route points")
 
     distance = float(df['cum_distance'].iloc[-1])
+
     cum_altitude_gain = float(df['cum_altitude_gain'].iloc[-1])
 
     return distance, cum_altitude_gain
