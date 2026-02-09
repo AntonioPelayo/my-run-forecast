@@ -62,5 +62,5 @@ MM_TO_FT_MULTIPLIER = 0.00328084 # Millimeters to Feet
 M_TO_MI_MULTIPLIER = 0.000621371 # Meters to Miles
 MPS_TO_MPH_MULTIPLIER = 2.23694 # Meters per Second to Miles per Hour
 FT_TO_M_MULTIPLIER = 0.3048 # Feet to Meters
-FT_IN_MI = 5280 # Feet in a Mile
-M_IN_MI = 1609.34 # Meters in a Mile
+FT_TO_MI_MULTIPLIER = 5280 # Feet in a Mile
+MI_TO_M_MULTIPLIER = 1609.34 # Meters in a Mile

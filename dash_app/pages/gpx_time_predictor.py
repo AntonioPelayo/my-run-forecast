@@ -8,13 +8,14 @@ import tempfile
 import dash
 from dash import Input, Output, dcc, html
 
-from utils.plots import plot_run
-from utils import gpx as gu
-from utils import time as tu
 from gpx_time_prediction_models.inference.predict import (
     load_artifact,
     predict_elapsed_seconds
 )
+from utils.config import M_TO_MI_MULTIPLIER, M_TO_FT_MULTIPLIER
+from utils.plots import plot_run
+from utils import gpx as gu
+from utils import time as tu
 
 dash.register_page(__name__, path="/gpx_time_predictor", name="GPX Time Predictor")
 
@@ -33,8 +34,7 @@ def _empty_figure():
 layout = html.Div(
     [
         html.H2("GPX Time Predictor"),
-        html.P("Using my historical running data, you can upload a GPX file of a route and get a predicted time to run it."),
-    # Dropdown for 3 pre-uploaded GPX files for testing
+        html.P("Using my historical running data, you can upload a GPX file of a route and get a predicted time that I'd run it."),
         dcc.Dropdown(
             id="gpx-sample-dropdown",
             options=[
@@ -72,6 +72,11 @@ layout = html.Div(
             options=[{"label": "Trail route", "value": "trail"}],
             style={"marginBottom": "1rem"}
         ),
+        dcc.Checklist(
+            id="metric-toggle",
+            options=[{"label": "Kilometers/Meters", "value": "km_m"}],
+            style={"marginBottom": "1rem"}
+        ),
         html.Div(id="gpx-upload-status", style={"marginBottom": "1rem"}),
         dcc.Graph(id="gpx-plot", figure=_empty_figure()),
         html.P(
@@ -80,6 +85,10 @@ layout = html.Div(
         ),
         html.P(
             id="gpx-prediction-output",
+            style={"marginTop": "1rem", "fontWeight": "bold"}
+        ),
+        html.P(
+            id="prediction-pace-output",
             style={"marginTop": "1rem", "fontWeight": "bold"}
         ),
     ]
@@ -105,13 +114,19 @@ def generate_prediction(gpx_file, is_trail=False):
         cum_altitude_gain=cum_altitude_gain,
         is_trail=is_trail
     )
-    hours = tu.seconds_to_hours(seconds)
-    hhmmss = tu.hours_to_hhmmss(hours)
-    return hhmmss
+    return seconds
+    # hours = tu.seconds_to_hours(seconds)
+    # hhmmss = tu.hours_to_hhmmss(hours)
+    # return hhmmss
 
 
-def _route_summary_text(distance_m: float, gain_m: float) -> str:
-    return f"Distance: {distance_m/1000:.2f} km, Altitude Gain: {gain_m:.2f} m"
+def _route_summary_text(distance_m: float, gain_m: float, metric=True) -> str:
+    if metric:
+        return f"Distance: {distance_m/1000:.2f} km, Altitude Gain: {gain_m:.2f} m"
+    else:
+        distance_mi = distance_m * M_TO_MI_MULTIPLIER
+        gain_ft = gain_m * M_TO_FT_MULTIPLIER
+        return f"Distance: {distance_mi:.2f} mi, Altitude Gain: {gain_ft:.2f} ft"
 
 
 def _predict_and_plot(gpx_path: str, is_trail=False):
@@ -138,31 +153,36 @@ def _resolve_gpx_source(contents, filename, sample_path):
     Output("gpx-upload-status", "children"),
     Output("gpx-route_metrics", "children"),
     Output("gpx-prediction-output", "children"),
+    Output("prediction-pace-output", "children"),
+    Input("gpx-sample-dropdown", "value"),
     Input("gpx-upload", "contents"),
     Input("gpx-upload", "filename"),
-    Input("gpx-sample-dropdown", "value"),
     Input("gpx-trail-toggle", "value"),
+    Input("metric-toggle", "value"),
 )
-def update_page(contents, filename, sample_path, is_trail_value):
+def update_page(sample_path, contents, filename, is_trail_value, is_metric_value):
     gpx_route_metrics = "Distance: N/A, Altitude Gain: N/A"
     prediction_output = "Prediction: N/A"
+    pace_output = "Pace: N/A"
 
     gpx_path, status = _resolve_gpx_source(contents, filename, sample_path)
     if gpx_path is None:
-        return _empty_figure(), status, gpx_route_metrics, prediction_output
+        return _empty_figure(), status, gpx_route_metrics, prediction_output, pace_output
 
     is_trail = "trail" in (is_trail_value or [])
+    is_metric = "km_m" in (is_metric_value or [])
 
     try:
-        fig, prediction, distance, cum_altitude_gain = _predict_and_plot(gpx_path, is_trail)
+        fig, prediction_s, distance, cum_altitude_gain = _predict_and_plot(gpx_path, is_trail)
         return (
             fig,
             status,
-            _route_summary_text(distance, cum_altitude_gain),
-            f"Predicted time: {prediction}",
+            _route_summary_text(distance, cum_altitude_gain, is_metric),
+            f"Predicted time: {tu.hours_to_hhmmss(tu.seconds_to_hours(prediction_s))}",
+            f"Predicted pace: {tu.format_seconds_to_pace(distance, prediction_s, metric=is_metric)}"
         )
     except Exception as exc:
-        return _empty_figure(), f"Failed to parse: {exc}", "", ""
+        return _empty_figure(), f"Failed to parse: {exc}", "", "", ""
     finally:
         if contents and gpx_path and os.path.exists(gpx_path):
             os.remove(gpx_path)
