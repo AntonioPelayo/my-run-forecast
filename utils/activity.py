@@ -10,23 +10,25 @@ from utils.config import (
     M_TO_KM_MULTIPLIER
 )
 from utils.time import seconds_to_hours, hours_to_hhmmss
+from utils.config import PARQUET_RUN_ACTIVITIES_PATH
 
 
-def get_last_activity_file(
-    activity_dir: Path,
-    alphabetical_sort: bool=False
+def get_recent_activities(
+    activity_dir: Path=PARQUET_RUN_ACTIVITIES_PATH,
+    alphabetical_sort: bool=False,
+    limit: int=5
 ) -> Path | None:
-    """Return the most recent parquet activity file in a directory."""
+    """Return the most recent parquet activity files in a directory."""
     parquet_files = list(activity_dir.glob('*.parquet'))
     if not parquet_files:
         return None
+
     if alphabetical_sort:
         parquet_files.sort()
-        latest_file = parquet_files[-1]
+        return parquet_files[-limit:]
     else:
-        latest_file = max(parquet_files, key=lambda p: p.stat().st_mtime)
-        # latest_file = max(parquet_files, key=lambda p: p.stat().st_mtime)
-    return latest_file
+        sorted_files = sorted(parquet_files, key=lambda p: p.stat().st_mtime, reverse=True)
+        return sorted_files[:limit]
 
 
 def activity_summary(activity_file: Path) -> dict[str, float]:
@@ -76,7 +78,9 @@ def activity_summary(activity_file: Path) -> dict[str, float]:
         'elapsed_seconds': _final_value(df, 'elapsed_seconds'),
         'elapsed_time': hhmmss,
         'distance': distance_m,
+        'trail_distance': distance_m if df['sub_sport'].iloc[0] == 'trail' else 0,
         'cum_altitude_gain': elevation_gain_m,
+        'trail_cum_altitude_gain': elevation_gain_m if df['sub_sport'].iloc[0] == 'trail' else 0,
         'average_pace': minute_per_km,
         'average_hr': _mean_value(df, 'heart_rate'),
         'avg_cadence': _mean_value(df, 'cadence'),

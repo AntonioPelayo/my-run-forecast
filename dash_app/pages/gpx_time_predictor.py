@@ -109,15 +109,12 @@ def generate_plot(gpx_file):
 def generate_prediction(gpx_file, is_trail=False):
     distance, cum_altitude_gain = gu.route_summary(gpx_file)
     seconds = predict_elapsed_seconds(
-        artifact=load_artifact(Path("gpx_time_prediction_models/artifacts/linear_v1.json")),
+        artifact=load_artifact(Path("gpx_time_prediction_models/artifacts/normalized_linear_v2026_02_19.json")),
         distance=distance,
         cum_altitude_gain=cum_altitude_gain,
         is_trail=is_trail
     )
     return seconds
-    # hours = tu.seconds_to_hours(seconds)
-    # hhmmss = tu.hours_to_hhmmss(hours)
-    # return hhmmss
 
 
 def _route_summary_text(distance_m: float, gain_m: float, metric=True) -> str:

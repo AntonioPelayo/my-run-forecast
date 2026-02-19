@@ -13,7 +13,10 @@ def load_artifact(path: Path) -> dict:
     with path.open("r", encoding="utf-8") as f:
         artifact = json.load(f)
 
-    required = ("intercept", "coefficients", "feature_names", "model_version")
+    required = (
+        "intercept", "coefficients", "feature_names", "model_version",
+        "feature_means", "feature_stds", "target_name"
+    )
     missing = [k for k in required if k not in artifact]
     if missing:
         raise ValueError(f"Artifact missing keys: {missing}")
@@ -30,11 +33,17 @@ def predict_elapsed_seconds(
     features = build_inference_vector(
         distance=distance,
         cum_altitude_gain=cum_altitude_gain,
+        trail_distance=distance if is_trail else 0,
+        trail_cum_altitude_gain=cum_altitude_gain if is_trail else 0,
         is_trail=is_trail,
     )
 
     feature_names = artifact["feature_names"]
     vector = np.array([features[name] for name in feature_names], dtype=float)
+
+    means = np.array(artifact["feature_means"], dtype=float)
+    stds = np.array(artifact["feature_stds"], dtype=float)
+    vector = (vector - means) / stds
 
     intercept = float(artifact["intercept"])
     coefficients = np.array(artifact["coefficients"], dtype=float)
