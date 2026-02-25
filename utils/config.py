@@ -1,3 +1,4 @@
+from datetime import timedelta
 from pathlib import Path
 
 EXPECTED_FIT_COLUMNS = [
@@ -55,10 +56,20 @@ ADDITIONAL_COLUMNS = [
     'origin_file_name'
 ]
 
+
+# Data paths
 DATA_PATH = Path("data")
 PARQUET_RUN_ACTIVITIES_PATH = DATA_PATH / "parquet_run_activities"
 GARMIN_FIT_FILES_PATH = DATA_PATH / "garmin_fit_files"
 
+
+# Lactate threshold values
+LT_HR = 183
+LT_POWER = 411
+LT_PACE = timedelta(minutes=7, seconds=33) # min/mile
+
+
+# Unit conversion constants
 M_TO_KM_MULTIPLIER = 0.001 # Meters to Kilometers
 MIPS_TO_MPH_MULTIPLIER = 3600 # Miles per second to Miles per Hour
 M_TO_FT_MULTIPLIER = 3.28084 # Meters to Feet
