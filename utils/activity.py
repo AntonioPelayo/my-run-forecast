@@ -76,15 +76,19 @@ def activity_summary(activity_file: Path) -> dict[str, float]:
         'sport': df['sport'].iloc[0] if 'sport' in df.columns else 'unknown',
         'sub_sport': df['sub_sport'].iloc[0] if 'sub_sport' in df.columns else 'unknown',
         'elapsed_seconds': _final_value(df, 'elapsed_seconds'),
-        'elapsed_time': hhmmss,
+        'elapsed_time_hhmmss': hhmmss,
         'distance': distance_m,
+        'cum_elevation_gain': elevation_gain_m,
+        'road_distance': 0 if df['sub_sport'].iloc[0] == 'trail' else distance_m,
+        'road_cum_elevation_gain': elevation_gain_m if df['sub_sport'].iloc[0] != 'trail' else 0,
         'trail_distance': distance_m if df['sub_sport'].iloc[0] == 'trail' else 0,
-        'cum_altitude_gain': elevation_gain_m,
-        'trail_cum_altitude_gain': elevation_gain_m if df['sub_sport'].iloc[0] == 'trail' else 0,
-        'average_pace': minute_per_km,
-        'average_hr': _mean_value(df, 'heart_rate'),
+        'trail_cum_elevation_gain': elevation_gain_m if df['sub_sport'].iloc[0] == 'trail' else 0,
+        'avg_pace': minute_per_km,
+        'avg_hr': _mean_value(df, 'heart_rate'),
         'avg_cadence': _mean_value(df, 'cadence'),
         'avg_power': _mean_value(df, 'power'),
+        'start_lat': df['position_lat'].iloc[0] if 'position_lat' in df.columns else float('nan'),
+        'start_long': df['position_long'].iloc[0] if 'position_long' in df.columns else float('nan'),
     }
 
 
@@ -106,8 +110,8 @@ def print_activity_summary(activity_file: Path) -> None:
         return
 
     elapsed_time = summary.get('elapsed_time', float('nan'))
-    distance_m = summary.get('distance_m', float('nan'))
-    elevation_m = summary.get('elevation_gain_m', float('nan'))
+    distance_m = summary.get('distance', float('nan'))
+    elevation_m = summary.get('cum_elevation_gain', float('nan'))
     distance_value = distance_m * M_TO_KM_MULTIPLIER if not np.isnan(distance_m) else float('nan')
     distance_unit = 'kilometers'
     elevation_value = elevation_m if not np.isnan(elevation_m) else float('nan')
@@ -122,8 +126,8 @@ def print_activity_summary(activity_file: Path) -> None:
         print(f"  Elevation gain: {elevation_value:.0f} {elevation_unit}")
 
     label_suffix = {
-        'average_pace': ("Average pace", "min/km"),
-        'average_hr': ("Average heart rate", "bpm"),
+        'avg_pace': ("Average pace", "min/km"),
+        'avg_hr': ("Average heart rate", "bpm"),
         'avg_cadence': ("Average cadence", "spm"),
         'avg_power': ("Average power", "watts"),
     }

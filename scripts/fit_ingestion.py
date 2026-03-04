@@ -11,9 +11,7 @@ from pathlib import Path
 from fitparse import FitFile
 
 from utils import fit as fit_utils
-
-GARMIN_FIT_ACTIVITIES_PATH = Path('data/garmin_fit_activities')
-PARQUET_RUN_ACTIVITIES_PATH = Path('data/parquet_run_activities')
+from utils.config import GARMIN_FIT_FILES_PATH, PARQUET_RUN_ACTIVITIES_PATH
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
@@ -84,7 +82,7 @@ def ingest_fit_files(
         fit = FitFile(str(fit_file))
         sport, sub_sport = fit_utils.get_sport(fit)
 
-        if sport != "running" and sub_sport != "running":
+        if sport != "running":
             skipped_count += 1
             continue
 
@@ -100,7 +98,7 @@ def ingest_fit_files(
 
 def main() -> None:
     args = parse_args()
-    source_dir = args.source or GARMIN_FIT_ACTIVITIES_PATH
+    source_dir = args.source or GARMIN_FIT_FILES_PATH
     destination_dir = args.destination or PARQUET_RUN_ACTIVITIES_PATH
     ensure_directories(source_dir, destination_dir, args.mode)
 

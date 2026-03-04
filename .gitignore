@@ -4,7 +4,6 @@ __pycache__/
 admin/
 venv/
 
-*.csv
 *.fit
 *.parquet
 .DS_Store
