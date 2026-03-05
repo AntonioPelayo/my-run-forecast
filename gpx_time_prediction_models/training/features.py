@@ -7,10 +7,10 @@ import pandas as pd
 
 
 FEATURE_NAMES: tuple[str, ...] = (
-    "distance",
-    "cum_altitude_gain",
+    "road_distance",
+    "road_cum_elevation_gain",
     "trail_distance",
-    "trail_cum_altitude_gain",
+    "trail_cum_elevation_gain",
 )
 TARGET_NAME = "elapsed_seconds"
 
@@ -25,7 +25,11 @@ class FeatureMatrix:
 
 
 def _validate_columns(df: pd.DataFrame) -> None:
-    required = ("distance", "cum_altitude_gain", "trail_distance", "trail_cum_altitude_gain", "sub_sport", TARGET_NAME)
+    required = (
+        "road_distance", "road_cum_elevation_gain",
+        "trail_distance", "trail_cum_elevation_gain",
+        "sub_sport", TARGET_NAME
+    )
     missing = [c for c in required if c not in df.columns]
     if missing:
         raise ValueError(f"Missing required columns: {missing}")
@@ -38,7 +42,11 @@ def _sub_sport_to_is_trail(series: pd.Series) -> pd.Series:
 def build_training_matrix(df: pd.DataFrame) -> FeatureMatrix:
     _validate_columns(df)
 
-    frame = df[["distance", "cum_altitude_gain", "trail_distance", "trail_cum_altitude_gain", "sub_sport", TARGET_NAME]].copy()
+    frame = df[[
+        "road_distance", "road_cum_elevation_gain",
+        "trail_distance", "trail_cum_elevation_gain",
+        "sub_sport", TARGET_NAME
+    ]].copy()
     frame["is_trail"] = _sub_sport_to_is_trail(frame["sub_sport"])
     frame = frame.drop(columns=["sub_sport"]).dropna()
 
@@ -64,16 +72,16 @@ def build_training_matrix(df: pd.DataFrame) -> FeatureMatrix:
 
 
 def build_inference_vector(
-    distance: float,
-    cum_altitude_gain: float,
+    road_distance: float,
+    road_cum_elevation_gain: float,
     trail_distance: float,
-    trail_cum_altitude_gain: float,
+    trail_cum_elevation_gain: float,
     is_trail: bool,
 ) -> dict[str, float]:
     return {
-        "distance": float(distance),
-        "cum_altitude_gain": float(cum_altitude_gain),
+        "road_distance": float(road_distance),
+        "road_cum_elevation_gain": float(road_cum_elevation_gain),
         "trail_distance": float(trail_distance),
-        "trail_cum_altitude_gain": float(trail_cum_altitude_gain),
+        "trail_cum_elevation_gain": float(trail_cum_elevation_gain),
         "is_trail": 1.0 if is_trail else 0.0,
     }

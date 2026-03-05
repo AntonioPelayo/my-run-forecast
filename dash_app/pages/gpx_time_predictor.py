@@ -17,8 +17,15 @@ from utils.plots import plot_run
 from utils import gpx as gu
 from utils import time as tu
 
-dash.register_page(__name__, path="/gpx_time_predictor", name="GPX Time Predictor")
+dash.register_page(
+    __name__,
+    path="/gpx_time_predictor",
+    name="GPX Time Predictor"
+)
 
+LINEAR_MODEL_WEIGHTS = Path(
+    "gpx_time_prediction_models/artifacts/linear_weights.json"
+)
 
 def _empty_figure():
     return {
@@ -34,14 +41,26 @@ def _empty_figure():
 layout = html.Div(
     [
         html.H2("GPX Time Predictor"),
-        html.P("Using my historical running data, you can upload a GPX file of a route and get a predicted time that I'd run it."),
+        html.P(
+            """Using my historical running data, you can upload a GPX file of a
+            route and get a predicted time that I'd run it.
+            """
+        ),
         dcc.Dropdown(
             id="gpx-sample-dropdown",
             options=[
-                {"label": "BRRC Qualifier Loop", "value": "data/gpx_routes/brrc_qualifier_loop.gpx"},
-                {"label": "Gate to tower segment", "value": "data/gpx_routes/gate_to_tower.gpx"},
-                {"label": "Pena Passage 10km Route", "value": "data/gpx_routes/pena_passage_10km.gpx"},
-
+                {
+                    "label": "BRRC Qualifier Loop",
+                    "value": "data/gpx_routes/brrc_qualifier_loop.gpx"
+                },
+                {
+                    "label": "Gate to tower segment",
+                    "value": "data/gpx_routes/gate_to_tower.gpx"
+                },
+                {
+                    "label": "Pena Passage 10km Route",
+                    "value": "data/gpx_routes/pena_passage_10km.gpx"
+                },
             ],
             placeholder="Select a sample GPX route",
             style={"marginBottom": "1rem", "width": "50%"},
@@ -107,30 +126,30 @@ def generate_plot(gpx_file):
 
 
 def generate_prediction(gpx_file, is_trail=False):
-    distance, cum_altitude_gain = gu.route_summary(gpx_file)
+    distance, cum_elevation_gain = gu.route_summary(gpx_file)
     seconds = predict_elapsed_seconds(
-        artifact=load_artifact(Path("gpx_time_prediction_models/artifacts/normalized_linear_v2026_02_19.json")),
-        distance=distance,
-        cum_altitude_gain=cum_altitude_gain,
-        is_trail=is_trail
+        load_artifact(LINEAR_MODEL_WEIGHTS),
+        distance,
+        cum_elevation_gain,
+        is_trail
     )
     return seconds
 
 
 def _route_summary_text(distance_m: float, gain_m: float, metric=True) -> str:
     if metric:
-        return f"Distance: {distance_m/1000:.2f} km, Altitude Gain: {gain_m:.2f} m"
+        return f"Distance: {distance_m/1000:.2f} km, Elevation Gain: {gain_m:.2f} m"
     else:
         distance_mi = distance_m * M_TO_MI_MULTIPLIER
         gain_ft = gain_m * M_TO_FT_MULTIPLIER
-        return f"Distance: {distance_mi:.2f} mi, Altitude Gain: {gain_ft:.2f} ft"
+        return f"Distance: {distance_mi:.2f} mi, Elevation Gain: {gain_ft:.2f} ft"
 
 
 def _predict_and_plot(gpx_path: str, is_trail=False):
     fig = generate_plot(gpx_path)
     prediction = generate_prediction(gpx_path, is_trail=is_trail)
-    distance, cum_altitude_gain = gu.route_summary(gpx_path)
-    return fig, prediction, distance, cum_altitude_gain
+    distance, cum_elevation_gain = gu.route_summary(gpx_path)
+    return fig, prediction, distance, cum_elevation_gain
 
 
 def _resolve_gpx_source(contents, filename, sample_path):
@@ -158,7 +177,7 @@ def _resolve_gpx_source(contents, filename, sample_path):
     Input("metric-toggle", "value"),
 )
 def update_page(sample_path, contents, filename, is_trail_value, is_metric_value):
-    gpx_route_metrics = "Distance: N/A, Altitude Gain: N/A"
+    gpx_route_metrics = "Distance: N/A, Elevation Gain: N/A"
     prediction_output = "Prediction: N/A"
     pace_output = "Pace: N/A"
 
@@ -170,11 +189,11 @@ def update_page(sample_path, contents, filename, is_trail_value, is_metric_value
     is_metric = "km_m" in (is_metric_value or [])
 
     try:
-        fig, prediction_s, distance, cum_altitude_gain = _predict_and_plot(gpx_path, is_trail)
+        fig, prediction_s, distance, cum_elevation_gain = _predict_and_plot(gpx_path, is_trail)
         return (
             fig,
             status,
-            _route_summary_text(distance, cum_altitude_gain, is_metric),
+            _route_summary_text(distance, cum_elevation_gain, is_metric),
             f"Predicted time: {tu.hours_to_hhmmss(tu.seconds_to_hours(prediction_s))}",
             f"Predicted pace: {tu.format_seconds_to_pace(distance, prediction_s, metric=is_metric)}"
         )

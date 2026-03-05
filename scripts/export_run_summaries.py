@@ -12,7 +12,7 @@ def main() -> None:
     df.to_csv(filename, index=False)
     print(f"Exported run activity summaries to {filename}")
 
-    timestamp = datetime.datetime.now().strftime('%Y-%m-%d')
+    timestamp = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
     backup_filename = DATA_PATH / f"backups/run_summaries_{timestamp}.csv"
     df.to_csv(backup_filename, index=False)
     print(f"Exported backup run activity summaries to {backup_filename}")

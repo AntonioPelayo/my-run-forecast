@@ -20,11 +20,7 @@ def fit_linear_regression(X: np.ndarray, y: np.ndarray) -> tuple[float, np.ndarr
     return intercept, weights
 
 
-def train_and_save(
-    input_data_path: Path,
-    output_path: Path,
-    model_version: str
-) -> None:
+def train(input_data_path: Path, model_version: str) -> dict:
     activity_summaries_df = au.activities_summary(input_data_path)
     matrix = build_training_matrix(activity_summaries_df)
 
@@ -39,17 +35,27 @@ def train_and_save(
         "feature_stds": matrix.feature_stds.tolist(),
         "target_name": "elapsed_seconds",
     }
+    return artifact
 
+
+def save(
+    artifact: dict,
+    output_path: Path
+) -> None:
     output_path.parent.mkdir(parents=True, exist_ok=True)
     with output_path.open("w", encoding="utf-8") as f:
         json.dump(artifact, f, indent=2)
 
 
 def main() -> None:
-    model_version = f"normalized_linear_v{datetime.now().strftime('%Y_%m_%d')}"
-    input_data_path = PARQUET_RUN_ACTIVITIES_PATH
-    output_path = Path(f"gpx_time_prediction_models/artifacts/{model_version}.json")
-    train_and_save(input_data_path, output_path, model_version)
+    output_path = Path("gpx_time_prediction_models/artifacts/")
+    timestamp = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+    model_version = f"linear_v{timestamp}"
+
+    weights_file_name = "linear_weights.json"
+    artifact = train(PARQUET_RUN_ACTIVITIES_PATH, model_version)
+    save(artifact, output_path / weights_file_name)
+    save(artifact, output_path / "backups" / model_version)
 
 
 if __name__ == "__main__":

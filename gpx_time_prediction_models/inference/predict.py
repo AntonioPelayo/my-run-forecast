@@ -27,15 +27,15 @@ def load_artifact(path: Path) -> dict:
 def predict_elapsed_seconds(
     artifact: dict,
     distance: float,
-    cum_altitude_gain: float,
+    cum_elevation_gain: float,
     is_trail: bool,
 ) -> float:
     features = build_inference_vector(
-        distance=distance,
-        cum_altitude_gain=cum_altitude_gain,
+        road_distance=0 if is_trail else distance,
+        road_cum_elevation_gain=0 if is_trail else cum_elevation_gain,
         trail_distance=distance if is_trail else 0,
-        trail_cum_altitude_gain=cum_altitude_gain if is_trail else 0,
-        is_trail=is_trail,
+        trail_cum_elevation_gain=cum_elevation_gain if is_trail else 0,
+        is_trail=is_trail
     )
 
     feature_names = artifact["feature_names"]
@@ -58,16 +58,16 @@ def predict_elapsed_seconds(
 
 
 def main() -> None:
-    artifact_path = Path("gpx_time_prediction_models/artifacts/linear_v1.json")
+    artifact_path = Path("gpx_time_prediction_models/artifacts/normalized_linear_model_weights.json")
     artifact = load_artifact(artifact_path)
     gpx_path = Path("data/gpx_routes/tower_oab.gpx")
-    distance, cum_altitude_gain = gu.route_summary(gpx_path)
-
+    distance, cum_elevation_gain = gu.route_summary(gpx_path)
+    is_trail = False
     seconds = predict_elapsed_seconds(
-        artifact=artifact,
-        distance=distance,
-        cum_altitude_gain=cum_altitude_gain,
-        is_trail=False
+        artifact,
+        distance,
+        cum_elevation_gain,
+        is_trail
     )
     print(f"Predicted elapsed_seconds: {seconds:.1f}")
 
