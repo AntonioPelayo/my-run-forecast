@@ -18,7 +18,7 @@ dash.register_page(
 # -----------------------------------------------------------------------------
 @lru_cache(maxsize=1)
 def load_data() -> pd.DataFrame:
-    return pd.read_csv("./data/run_summaries_2026-03-04.csv")
+    return pd.read_csv("./data/run_summaries.csv")
 
 
 def add_additional_columns(df: pd.DataFrame) -> pd.DataFrame:
