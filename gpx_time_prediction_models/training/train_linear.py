@@ -6,7 +6,10 @@ from datetime import datetime
 
 import numpy as np
 
-from gpx_time_prediction_models.training.features import build_training_matrix
+from gpx_time_prediction_models.training.features import (
+    FeatureMatrix,
+    build_training_matrix
+)
 from utils import activity as au
 from utils.config import PARQUET_RUN_ACTIVITIES_PATH
 
@@ -20,19 +23,18 @@ def fit_linear_regression(X: np.ndarray, y: np.ndarray) -> tuple[float, np.ndarr
     return intercept, weights
 
 
-def train(input_data_path: Path, model_version: str) -> dict:
-    activity_summaries_df = au.activities_summary(input_data_path)
-    matrix = build_training_matrix(activity_summaries_df)
-
-    intercept, coefficients = fit_linear_regression(matrix.X, matrix.y)
+def train(training_matrix: FeatureMatrix, model_version: str) -> dict:
+    intercept, coefficients = fit_linear_regression(
+        training_matrix.X, training_matrix.y
+    )
 
     artifact = {
         "model_version": model_version,
         "intercept": intercept,
         "coefficients": coefficients.tolist(),
-        "feature_names": list(matrix.feature_names),
-        "feature_means": matrix.feature_means.tolist(),
-        "feature_stds": matrix.feature_stds.tolist(),
+        "feature_names": list(training_matrix.feature_names),
+        "feature_means": training_matrix.feature_means.tolist(),
+        "feature_stds": training_matrix.feature_stds.tolist(),
         "target_name": "elapsed_seconds",
     }
     return artifact
@@ -53,9 +55,13 @@ def main() -> None:
     model_version = f"linear_v{timestamp}"
 
     weights_file_name = "linear_weights.json"
-    artifact = train(PARQUET_RUN_ACTIVITIES_PATH, model_version)
+
+    activity_summaries_df = au.activities_summary(PARQUET_RUN_ACTIVITIES_PATH)
+    matrix = build_training_matrix(activity_summaries_df)
+
+    artifact = train(matrix, model_version)
     save(artifact, output_path / weights_file_name)
-    save(artifact, output_path / "backups" / model_version)
+    save(artifact, output_path / "backups" / f"{model_version}.json")
 
 
 if __name__ == "__main__":
