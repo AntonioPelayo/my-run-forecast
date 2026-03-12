@@ -10,9 +10,9 @@ def elapsed_seconds(timestamps: pd.Series) -> pd.Series:
     return (timestamps - t0).dt.total_seconds()
 
 
-def gradient(altitude: pd.Series, distance: pd.Series) -> pd.DataFrame:
+def gradient(elevation: pd.Series, distance: pd.Series) -> pd.DataFrame:
     """Compute gradients using either metric (meters) or imperial (feet/miles) inputs."""
-    da = altitude.diff().fillna(0)
+    da = elevation.diff().fillna(0)
     dd = distance.diff().fillna(0).replace(0, 1e-6)
     return da / dd
 

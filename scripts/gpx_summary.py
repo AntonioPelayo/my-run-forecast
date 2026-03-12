@@ -32,7 +32,7 @@ if __name__ == "__main__":
 
     df = gpx_utils.gpx_to_df(args.gpxFile)
     distance = df['cum_distance'].iloc[-1]
-    elevation_gain = df['cum_altitude_gain'].iloc[-1]
+    elevation_gain = df['cum_elevation_gain'].iloc[-1]
 
     if args.imperial:
         distance *= M_TO_MI_MULTIPLIER

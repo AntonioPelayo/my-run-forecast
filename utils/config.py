@@ -47,10 +47,9 @@ ADDITIONAL_COLUMNS = [
     'sub_sport',
     'complete_cadence', # SPM
     'elapsed_seconds', # Seconds since start of activity
-    # TODO: Change altitude to elevation
-    'altitude_change', # Meters
-    'altitude_gain', # Meters
-    'cum_altitude_gain', # Meters
+    'elevation_change', # Meters
+    'elevation_gain', # Meters
+    'cum_elevation_gain', # Meters
     'gradient',
     'percent_grade', # Percent
     'grade_degrees', # Degrees

@@ -16,7 +16,7 @@ def gpx_to_df(gpx_path: Path) -> pd.DataFrame:
         except AttributeError:
             elevation = 0
         gpx_pts.append((point.latitude, point.longitude, elevation))
-    df = pd.DataFrame(gpx_pts, columns=['position_lat', 'position_long', 'altitude'])
+    df = pd.DataFrame(gpx_pts, columns=['position_lat', 'position_long', 'elevation'])
 
     # Cumulative metrics
     coords = [(p.position_lat, p.position_long) for p in df.itertuples()]
@@ -25,10 +25,10 @@ def gpx_to_df(gpx_path: Path) -> pd.DataFrame:
         for x1, x2 in zip(coords[:-1], coords[1:])
     ]
     df['cum_distance'] = df.distance_change.cumsum()
-    if df.altitude.isnull().all():
-        df['altitude'] = 0.0
-    df['altitude_change'] = df.altitude.diff()
-    df['cum_altitude_gain'] = df['altitude_change'].clip(lower=0).cumsum()
+    if df.elevation.isnull().all():
+        df['elevation'] = 0.0
+    df['elevation_change'] = df.elevation.diff()
+    df['cum_elevation_gain'] = df['elevation_change'].clip(lower=0).cumsum()
 
     return df
 
@@ -40,6 +40,6 @@ def route_summary(gpx_path: Path) -> tuple[float, float]:
 
     distance = float(df['cum_distance'].iloc[-1])
 
-    cum_altitude_gain = float(df['cum_altitude_gain'].iloc[-1])
+    cum_elevation_gain = float(df['cum_elevation_gain'].iloc[-1])
 
-    return distance, cum_altitude_gain
+    return distance, cum_elevation_gain

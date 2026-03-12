@@ -50,17 +50,17 @@ def activity_summary(activity_file: Path) -> dict[str, float]:
     if np.isnan(distance_m):
         distance_m = _final_value(df, 'distance_m')
 
-    altitude_col = None
-    for name in ('altitude', 'enhanced_altitude', 'altitude_m'):
+    elevation_col = None
+    for name in ('elevation', 'enhanced_altitude', 'elevation_m'):
         if name in df.columns:
-            altitude_col = name
+            elevation_col= name
             break
 
     elevation_gain_m = float('nan')
-    if altitude_col is not None:
-        altitude = df[altitude_col].dropna().astype(float)
-        if not altitude.empty:
-            elevation_gain_m = float(altitude.diff().clip(lower=0).sum())
+    if elevation_col is not None:
+        elevation = df[elevation_col].dropna().astype(float)
+        if not elevation.empty:
+            elevation_gain_m = float(elevation.diff().clip(lower=0).sum())
 
     minute_per_km = float('nan')
     if not np.isnan(distance_m) and distance_m > 0 and elapsed_hours > 0:

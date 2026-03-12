@@ -90,9 +90,9 @@ def standardize_fit_df(df: pd.DataFrame) -> pd.DataFrame:
     df['position_lat'] = semicircle_to_degrees(df['position_lat'])
     df['position_long'] = semicircle_to_degrees(df['position_long'])
 
-    df['altitude_change'] = df['enhanced_altitude'].diff().fillna(0)
-    df['altitude_gain'] = df['altitude_change'].clip(lower=0)
-    df['cum_altitude_gain'] = df['altitude_gain'].cumsum()
+    df['elevation_change'] = df['enhanced_altitude'].diff().fillna(0)
+    df['elevation_gain'] = df['elevation_change'].clip(lower=0)
+    df['cum_elevation_gain'] = df['elevation_gain'].cumsum()
 
     df['gradient'] = gradient(df['enhanced_altitude'], df['distance'])
     df['percent_grade'] = percent_grade(df['gradient'])
